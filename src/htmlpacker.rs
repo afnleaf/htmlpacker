@@ -8,6 +8,9 @@ use maud::{DOCTYPE, html, Markup, PreEscaped};
 // use tokio;
 // use reqwest;
 //
+use crate::encoder::Base;
+
+//use htmlpacker::encoder;
 
 //#[derive(Debug)]
 //struct Embed {
@@ -68,11 +71,13 @@ fn scripts(
 }
 
 fn binary(
-    bin: String,
+    bin: Vec<Base>,
 ) -> Markup {
     html! {
-        pre id="bin" style="display: none;"{
-            (bin)
+        @for b in &bin {
+            pre id=(b.id) style="display: none;" {
+                (b.sl)
+            }
         }
     }
 }
@@ -85,7 +90,7 @@ pub fn page(
     css: String,
     external_scripts_text: Vec<String>,
     local_scripts_text: Vec<String>,
-    bin: String,
+    bin: Vec<Base>,
 )
 -> Markup {
     html! {

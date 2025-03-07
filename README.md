@@ -9,6 +9,8 @@ embed all dependencies into a single html file
 
 ## checkpoints
 - [x] text
-- [] png
-- webassembly
+- [x] png
+- [ ] webassembly
+- [ ] favicon
+- ???
 

@@ -1,19 +1,11 @@
 use std::error::Error;
 // crates
-use base64::prelude::*;
 // use tokio;
 // use reqwest;
 // modules
-mod htmlpacker;
+use ::htmlpacker::encoder;
+use ::htmlpacker::htmlpacker;
 
-fn encode_base64(s: &str) -> String {
-    let encoded = BASE64_STANDARD.encode(s.as_bytes());
-
-    println!("text: {}", s);
-    println!("b64:  {}", &encoded);
-
-    encoded
-}
 
 // async !!
 #[tokio::main]
@@ -45,14 +37,18 @@ async fn main() -> Result<(), Box<dyn Error>>{
     //
 
     // base64 encoder
-    let b64 = encode_base64("hello world!!!");
-    println!("{}", b64);
+    let text64 = encoder::encode_text_base64("hello world!!!\nt. packer");
+    let png64 = encoder::encode_png_base64("./public/wizard.png")?;
+    //println!("{:#?}", &text64);
+    //println!("{:#?}", &png64);
+    let bin: Vec<encoder::Base> = vec![text64, png64];
+
 
     let markup = htmlpacker::page(
         css_text,
         external_scripts_text,
         local_scripts_text,
-        b64,
+        bin,
     );
 
     let html = markup.into_string();
