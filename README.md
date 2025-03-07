@@ -1,6 +1,8 @@
 # htmlpacker
 embed all dependencies into a single html file
 
+a new form of offline OS agnostic application
+
 ## resources
 - [utf-8](https://en.wikipedia.org/wiki/UTF-8)
 - [unicode table](https://www.utf8-chartable.de/)
