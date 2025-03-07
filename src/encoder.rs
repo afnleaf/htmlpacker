@@ -47,3 +47,20 @@ pub fn encode_png_base64(png_path: &str) -> Result<Base, Box<dyn Error>> {
         encoded
     ))
 }
+
+
+pub fn encode_wasm_base64(wasm_path: &str) -> Result<Base, Box<dyn Error>> {
+    //let wasm_bytes = std::fs::read(wasm_path).unwrap();
+    //base64::encode(&wasm_bytes)
+    let mut file = File::open(wasm_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    let encoded = BASE64_STANDARD.encode(&buffer);
+
+    Ok(Base::new(
+        String::from("bin-wasm"),
+        encoded
+    ))
+
+}
