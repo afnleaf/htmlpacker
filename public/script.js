@@ -8,7 +8,7 @@ function decodeBase64Text(base) {
     }
 }
 
-// add out hello world
+// add our hello world
 const a = document.createElement("div");
 a.innerHTML = "dude...";
 document.body.appendChild(a);
@@ -53,11 +53,19 @@ async function loadWasmModule(base64Wasm) {
 
 async function test() {
     try {
+
         const wasm = document.getElementById('bin-wasm').innerHTML.trim();
         console.log("Loading WebAssembly module...");
         
         const wasmExports = await loadWasmModule(wasm);
         console.log("Available WebAssembly exports:", Object.keys(wasmExports));
+        
+        // List all available functions
+        for (const key of Object.keys(wasmExports)) {
+            if (typeof wasmExports[key] === 'function') {
+                console.log(`Found WebAssembly function: ${key}`);
+            }
+        }
         
         // Use the add function if it exists
         if (typeof wasmExports.add === 'function') {
@@ -87,13 +95,14 @@ async function test() {
             greetingElement.innerHTML = `<p>${message}</p>`;
             document.body.appendChild(greetingElement);
         }
-        
-        // List all available functions
-        for (const key of Object.keys(wasmExports)) {
-            if (typeof wasmExports[key] === 'function') {
-                console.log(`Found WebAssembly function: ${key}`);
-            }
+
+        if (typeof wasmExports.greet === 'function') {
+            const greet = new TextDecoder().decode(wasmExports.greet());
+            const greetingElement = document.createElement("div");
+            greetingElement.innerHTML = `<p>${greet}</p>`;
+            document.body.appendChild(greetingElement);
         }
+        
     } catch (error) {
         console.error("Error in test function:", error);
         
