@@ -12,7 +12,14 @@ a new form of offline OS agnostic application
 ## checkpoints
 - [x] text
 - [x] png
-- [ ] webassembly
-- [ ] favicon
+- [x] wasm simple
+- [x] wasm-bindgen
+- [ ] wasm canvas
+- [ ] wasm advanced
+- [ ] favicon, metadata, etc 
 - ???
+
+## compile
+wasm-pack build --target no-modules
+
 
