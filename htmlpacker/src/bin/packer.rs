@@ -24,38 +24,54 @@ fn build_wasm() {
 }
 */
 
+/*
 fn build_wasm() {
-       // Run cargo build in the wasm_modules directory with the correct target
-       let status = Command::new("cargo")
-           .current_dir("./wasm_modules")
-           .args(&[
-               "build",
-               "--target", "wasm32-unknown-unknown",
-               "--release"
-           ])
-           .status()
-           .expect("Failed to compile WebAssembly");
-       
-       if !status.success() {
-           panic!("WebAssembly compilation failed");
-       }
-       
-       // Make sure the public directory exists
-       //fs::create_dir_all("./public").expect("Failed to create public directory");
-       
-       // Copy the compiled wasm file to where the main project expects it
-       fs::copy(
-           "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
-           "./public/wasm_test.wasm"
-       ).expect("Failed to copy WebAssembly file");
-       
-       println!("WebAssembly compiled successfully");
-   }
+    // Run cargo build in the wasm_modules directory with the correct target
+    let status = Command::new("cargo")
+        .current_dir("./wasm_modules")
+        .args(&[
+            "build",
+            "--target", "wasm32-unknown-unknown",
+            "--release"
+        ])
+        .status()
+        .expect("Failed to compile WebAssembly");
+    
+    if !status.success() {
+        panic!("WebAssembly compilation failed");
+    }
+    
+    // Make sure the public directory exists
+    //fs::create_dir_all("./public").expect("Failed to create public directory");
+    
+    // Copy the compiled wasm file to where the main project expects it
+    fs::copy(
+        "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
+        "./public/wasm_test.wasm"
+    ).expect("Failed to copy WebAssembly file");
+    
+    println!("WebAssembly compiled successfully");
+}
+*/
+
+//wasm-pack build --target no-modules
+fn build_wasm() {
+    Command::new("wasm-pack")
+        .current_dir("../wasm_modules")
+        .args(&[
+            "build",
+            "--target",
+            "no-modules",
+        ])
+        .status()
+        .expect("Failed to compile WebAssembly");
+    println!("WebAssembly compiled successfully");
+}
 
 // async !!
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>>{
-    //build_wasm();
+    build_wasm();
 
     let css_urls = vec![
         "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
