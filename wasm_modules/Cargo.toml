@@ -3,12 +3,128 @@ name = "wasm_modules"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-wasm-bindgen = "0.2.100"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2.100"
-
 [lib]
 crate-type = ["cdylib"]
-#path = "./src/lib.rs"
+
+# Main dependencies
+[dependencies]
+js-sys = "0.3.77"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1.7"
+
+# Web-sys with required features
+[dependencies.web-sys]
+version = "0.3.77"
+features = [
+    'console',
+    'Document',
+    'Element',
+    'HtmlCanvasElement',
+    'Window',
+    'WebGlRenderingContext',
+    'WebGl2RenderingContext',
+    'Performance',
+    'WheelEvent',
+    'KeyboardEvent',
+    'MouseEvent',
+    'CssStyleDeclaration',
+]
+
+# Bevy with carefully selected features
+[dependencies.bevy]
+version = "0.15.3"
+default-features = false
+features = [
+    "bevy_winit",      # Window handling
+    "bevy_render",     # Rendering system
+    "bevy_core_pipeline", # Core rendering pipeline
+    "bevy_pbr",        # 3D rendering
+    "bevy_sprite",     # 2D support
+    #"bevy_text",       # Text rendering
+    #"bevy_ui",         # UI system
+    "webgl2",          # WebGL2 support (crucial for web)
+    "png",             # Image support
+    "tonemapping_luts",
+]
+
+# These optimizations are important for WASM
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O1"]
+#wasm-opt = false
+#wasm-opt = ["-O3", "--enable-mutable-globals"]
+
+
+#[package]
+#name = "wasm_modules"
+#version = "0.1.0"
+#edition = "2021"
+#
+## Enable optimization in debug mode
+#[profile.dev]
+#opt-level = 1
+#
+## Enable high optimizations for dependencies (including Bevy)
+#[profile.dev.package."*"]
+#opt-level = 3
+#
+#[lib]
+#crate-type = ["cdylib"]
+##path = "./src/lib.rs"
+#
+#[dependencies]
+#bevy = "0.15.3"
+#js-sys = "0.3.77"
+#wasm-bindgen = "0.2.100"
+#wasm-bindgen-futures = "0.4"
+#
+#[dependencies.web-sys]
+#version = "0.3.77"
+#features = [
+#    'console',
+#    'Document',
+#    'Element',
+#    'HtmlCanvasElement',
+#    'Window',
+#    'WebGlRenderingContext',
+#    'WebGl2RenderingContext',
+#    'Performance',
+#    'WheelEvent',
+#    'KeyboardEvent',
+#    'MouseEvent',
+#    'TouchEvent',
+#    'GamepadEvent',
+#    'AnimationEvent'
+#]
+#
+##web-sys = { version = "0.3.77", features = [
+##        'console',
+##        'CanvasRenderingContext2d',
+##        'Document',
+##        'Element',
+##        'HtmlCanvasElement',
+##        'Window',
+##        'WebGlRenderingContext',
+##        'WebGl2RenderingContext',
+##        'Performance',
+##        'WheelEvent',
+##        'KeyboardEvent',
+##        'MouseEvent'
+##    ]}
+#
+#
+##[dependencies.web-sys]
+##features = ['CanvasRenderingContext2d', 'Document', 'Element', 'HtmlCanvasElement', 'Window']
+#
+#[target.'cfg(target_arch = "wasm32")'.dependencies]
+#wasm-bindgen = "0.2.100"
+#
+## This enables better WASM optimization
+#[package.metadata.wasm-pack.profile.release]
+#wasm-opt = ["-O3", "--enable-mutable-globals"]

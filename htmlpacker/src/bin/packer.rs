@@ -64,13 +64,14 @@ fn build_wasm() {
             "no-modules",
         ])
         .status()
-        .expect("Failed to compile WebAssembly");
-    println!("WebAssembly compiled successfully");
+        .expect("Failed to compile WASM.");
+    println!("WASM compiled.");
 }
 
 // async !!
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>>{
+async fn main() -> Result<(), Box<dyn Error>> {
+    println!("building app");
     build_wasm();
 
     let css_urls = vec![
@@ -84,8 +85,10 @@ async fn main() -> Result<(), Box<dyn Error>>{
 
     let local_scripts_list = vec![
         "../wasm_modules/pkg/wasm_modules.js", // bindgen
-        "../public/decoder.js", // decode wasm from base64
-        "../public/script.js", // app logic
+        //"../public/decoder.js", // decode wasm from base64
+        //"../public/app.js", // app logic
+        //"../public/script.js", // test script
+        "../public/app2.js",
     ];
 
     // external css
@@ -109,7 +112,6 @@ async fn main() -> Result<(), Box<dyn Error>>{
     //println!("{:#?}", &text64);
     //println!("{:#?}", &png64);
     let bin: Vec<encoder::Base> = vec![text64, png64, wasm64];
-
 
     let markup = htmlpacker::page(
         css_text,

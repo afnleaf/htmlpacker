@@ -1,5 +1,3 @@
-
-
 // Function to add basic content elements
 function addBasicContent() {
     // Add welcome message
@@ -38,6 +36,8 @@ async function runApp() {
         
         // Set up and initialize WebAssembly
         await setupWasm();
+
+        //wasm_bindgen.run();
         
         // Add a separator
         const separator = document.createElement("hr");

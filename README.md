@@ -14,7 +14,8 @@ a new form of offline OS agnostic application
 - [x] png
 - [x] wasm simple
 - [x] wasm-bindgen
-- [ ] wasm canvas
+- [x] wasm canvas
+- [x] wasm bevy
 - [ ] wasm advanced
 - [ ] favicon, metadata, etc 
 - ???
