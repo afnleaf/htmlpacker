@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::process::Command;
-use std::fs;
+//use std::fs;
 // crates
 // use tokio;
 // use reqwest;
@@ -83,8 +83,9 @@ async fn main() -> Result<(), Box<dyn Error>>{
     ];
 
     let local_scripts_list = vec![
-        "../public/script.js",
-        "../wasm_modules/pkg/wasm_modules.js"
+        "../wasm_modules/pkg/wasm_modules.js", // bindgen
+        "../public/decoder.js", // decode wasm from base64
+        "../public/script.js", // app logic
     ];
 
     // external css
@@ -103,8 +104,8 @@ async fn main() -> Result<(), Box<dyn Error>>{
     // base64 encoder
     let text64 = encoder::encode_text_base64("hello world!!!\nt. packer");
     let png64 = encoder::encode_png_base64("../public/wizard.png")?;
-    //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
     let wasm64 = encoder::encode_wasm_base64("../wasm_modules/pkg/wasm_modules_bg.wasm")?;
+    //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
     //println!("{:#?}", &text64);
     //println!("{:#?}", &png64);
     let bin: Vec<encoder::Base> = vec![text64, png64, wasm64];
