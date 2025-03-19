@@ -56,8 +56,8 @@ opt-level = 1
 opt-level = 3
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O1"]
-#wasm-opt = false
+#wasm-opt = ["-O1"]
+wasm-opt = false
 #wasm-opt = ["-O3", "--enable-mutable-globals"]
 
 

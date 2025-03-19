@@ -17,7 +17,11 @@ a new form of offline OS agnostic application
 - [x] wasm canvas
 - [x] wasm bevy
 - [ ] wasm advanced
-- [ ] favicon, metadata, etc 
+- [ ] loading screen
+- [ ] favicon, metadata, etc
+- [ ] lazy loading
+- [ ] brotli compression
+- [ ] base94
 - ???
 
 ## compile
