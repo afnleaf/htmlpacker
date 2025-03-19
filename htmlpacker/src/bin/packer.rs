@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::process::Command;
+use std::path::Path;
 //use std::fs;
 // crates
 // use tokio;
@@ -55,7 +56,8 @@ fn build_wasm() {
 */
 
 //wasm-pack build --target no-modules
-fn build_wasm() {
+fn build_wasm() -> Result<(), Box<dyn Error>> {
+    println!("Building WASM app.");
     Command::new("wasm-pack")
         .current_dir("../wasm_modules")
         .args(&[
@@ -66,26 +68,31 @@ fn build_wasm() {
         .status()
         .expect("Failed to compile WASM.");
     println!("WASM compiled.");
+
+    Ok(())
 }
 
 // async !!
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    println!("building app");
-    build_wasm();
+    // make sure to compile our wasm binaries and js glue first
+    build_wasm().unwrap();
 
+    // metadata
     let css_urls = vec![
         "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
     ];
 
+    // doesnt work need to create my own non module version?
     let external_scripts_list = vec![
+        "https://cdnjs.cloudflare.com/ajax/libs/brotli/1.3.2/decode.min.js",
         //"https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js",
         //"https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TrackballControls.min.js"
     ];
 
     let local_scripts_list = vec![
         "../wasm_modules/pkg/wasm_modules.js", // bindgen
-        //"../public/decoder.js", // decode wasm from base64
+        "../public/decoder.js", // decode wasm from base64
         //"../public/app.js", // app logic
         //"../public/script.js", // test script
         "../public/app2.js",
@@ -93,6 +100,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // external css
     let css_text = htmlpacker::get_css_string(css_urls).await?;
+
+    // favicon processing
+    let icon_path = "../public/icon.svg";
+    let icon_svg = htmlpacker::get_local_script(Path::new(icon_path)).unwrap();
+    let icon_svg64 = encoder::encode_icon_svg_base64(icon_svg);
+    //println!("{:?}", icon_svg64);
+    let icons = vec![icon_svg64];
 
     // external scripts to fetch
     let external_scripts_text = htmlpacker::get_external_scripts_text(
@@ -115,6 +129,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let markup = htmlpacker::page(
         css_text,
+        icons,
         external_scripts_text,
         local_scripts_text,
         bin,

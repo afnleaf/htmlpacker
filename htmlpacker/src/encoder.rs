@@ -18,6 +18,10 @@ impl Base{
     }
 }
 
+pub fn encode_icon_svg_base64(s: String) -> String {
+    BASE64_STANDARD.encode(s.as_bytes())
+}
+
 pub fn encode_text_base64(s: &str) -> Base {
     let encoded = BASE64_STANDARD.encode(s.as_bytes());
 
@@ -56,7 +60,45 @@ pub fn encode_wasm_base64(wasm_path: &str) -> Result<Base, Box<dyn Error>> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
-    let encoded = BASE64_STANDARD.encode(&buffer);
+    // so we have a buffer of bytes
+    // lets compress with gzip/brotli
+    //
+    /*
+    let mut compressed_buffer = Vec::new();
+    {
+        // Create a brotli compressor with quality 11 (highest) and window size 22
+        let mut compressor = Compressor::new(
+            &mut compressed_buffer, 
+            4096,  // buffer size
+            11,    // quality (0-11, higher is better compression)
+            22     // lg_window_size (recommended 20-22)
+        );
+        
+        // Write the original buffer to the compressor
+        compressor.write_all(&buffer)?;
+        
+        // Ensure all data is flushed to the compressed buffer
+        compressor.flush()?;
+    }
+    */
+    // Create a buffer for compressed data
+    let mut compressed_buffer = Vec::new();
+    println!("brotli compression"); 
+    // Use the BrotliCompress function for compression
+    brotli::BrotliCompress(
+        &mut &buffer[..],          // Input buffer as a Read impl
+        &mut compressed_buffer,    // Output buffer as a Write impl
+        &brotli::enc::BrotliEncoderParams {
+            quality: 1,           // Highest quality (0-11)
+            lgwin: 22,             // Window size (recommended 20-22)
+            ..Default::default()   // Use defaults for other parameters
+        }
+    )?;
+    println!("brotli done"); 
+    
+    // Encode the compressed data as base64
+    let encoded = BASE64_STANDARD.encode(&compressed_buffer);
+    //let encoded = BASE64_STANDARD.encode(&buffer);
 
     Ok(Base::new(
         String::from("bin-wasm"),

@@ -8,54 +8,9 @@ use std::process::Command;
 use ::htmlpacker::encoder;
 use ::htmlpacker::htmlpacker;
 
-/*
-fn build_wasm() {
-    Command::new("rustc")
-        .args(&[
-            "--target", "wasm32-unknown-unknown",
-            "-O", 
-            "--crate-type=cdylib", 
-            "./wasm_modules/src/lib.rs", 
-            "-o", "./public/wasm_test.wasm"
-        ])
-        .status()
-        .expect("Failed to compile WebAssembly");
-    println!("WebAssembly compiled successfully");
-}
-*/
-
-/*
-fn build_wasm() {
-    // Run cargo build in the wasm_modules directory with the correct target
-    let status = Command::new("cargo")
-        .current_dir("./wasm_modules")
-        .args(&[
-            "build",
-            "--target", "wasm32-unknown-unknown",
-            "--release"
-        ])
-        .status()
-        .expect("Failed to compile WebAssembly");
-    
-    if !status.success() {
-        panic!("WebAssembly compilation failed");
-    }
-    
-    // Make sure the public directory exists
-    //fs::create_dir_all("./public").expect("Failed to create public directory");
-    
-    // Copy the compiled wasm file to where the main project expects it
-    fs::copy(
-        "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
-        "./public/wasm_test.wasm"
-    ).expect("Failed to copy WebAssembly file");
-    
-    println!("WebAssembly compiled successfully");
-}
-*/
 
 //wasm-pack build --target no-modules
-fn build_wasm() {
+fn build_wasm() -> Result<(), Box<dyn Error>> {
     Command::new("wasm-pack")
         .current_dir("../wasm_modules")
         .args(&[
@@ -64,14 +19,27 @@ fn build_wasm() {
             "no-modules",
         ])
         .status()
-        .expect("Failed to compile WebAssembly");
-    println!("WebAssembly compiled successfully");
+        .expect("WASM failed to compile.");
+        //panic?
+    /* 
+    // make sure the public directory exists
+    fs::create_dir_all("./public").expect("Failed to create public directory");
+    
+    // Copy the compiled wasm file to where the main project expects it
+    fs::copy(
+        "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
+        "./public/wasm_test.wasm"
+    ).expect("Failed to copy WebAssembly file");
+    */
+    println!("WASM compiled.");
+
+    Ok(())
 }
 
 // async !!
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    println!("TEST");
+    //println!("TEST");
 
     build_wasm();
 

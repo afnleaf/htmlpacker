@@ -21,22 +21,52 @@ use crate::encoder::Base;
 //    //what else
 //}
 
+//<!-- For older browsers that don't support WASM natively -->
+//<script src="https://cdn.jsdelivr.net/npm/wasm-polyfill/wasm-polyfill.min.js"></script>
+// hmmm
+
 // head part of html
-fn head(css: String) -> Markup {
+fn head(
+    css: String,
+    icons: Vec<String>,
+) -> Markup {
     let viewport = concat!(
         "width=device-width, ",
-        "initial-scale=1, ",
-        "maximum-scale=1, ",
-        "user-scalable=0"
+        "initial-scale=1.0, ",
+        "maximum-scale=1.0, ",
+        "user-scalable=1"
     );
     html! {
         (DOCTYPE)
         meta charset = "utf-8";
         meta name = "viewport" content = (viewport);
+        //meta name = "description" content = "htmlpacked webapp"
+        //meta name = "author" content = "htmlpacker"
         title { "htmlpacker" }
+        (favicons(icons))
         style { (css) }
     }
 }
+
+fn favicons(icons: Vec<String>) -> Markup {
+    html! {
+        // basic - covers most needs
+        //link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,YOUR_ICO_BASE64_HERE";
+        
+        // modern browsers - SVG favicon (best option when available)
+        //link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,(icons[0])";
+        link rel="icon" type="image/svg+xml" href=(format!("data:image/svg+xml;base64,{}", icons[0]));
+        
+        // fallback PNGs for various sizes
+        //link rel="icon" type="image/png" sizes="16x16" href="data:image/png;base64,YOUR_16x16_PNG_BASE64_HERE";
+        //link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,YOUR_32x32_PNG_BASE64_HERE";
+        
+        // iOS/macOS support
+        //link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,YOUR_180x180_PNG_BASE64_HERE";
+    }
+}
+
+
 
 // replace problematic characters
 // tokens to watch for:
@@ -88,13 +118,14 @@ fn binary(
 // combine into page
 pub fn page(
     css: String,
+    icons: Vec<String>,
     external_scripts_text: Vec<String>,
     local_scripts_text: Vec<String>,
     bin: Vec<Base>,
 )
 -> Markup {
     html! {
-        (head(css))
+        (head(css, icons))
         body { 
             (binary(
                 bin,

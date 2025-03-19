@@ -1,81 +1,104 @@
-// load base64 from html
-// set up WASM module
-async function setupWasm() {
-    try {
-        console.log("Setting up Bevy WebAssembly application...");
-        
-        // Get the base64 encoded WASM
-        const wasmBase64 = document.getElementById('bin-wasm').innerHTML.trim();
-        // Decode to binary
-        const wasmBytes = base64ToArrayBuffer(wasmBase64);
-        
-        // Check WASM binary header for validity
-        const magicBytes = Array.from(wasmBytes.slice(0, 4));
-        console.log("WASM binary magic bytes:", 
-            magicBytes.map(b => "0x" + b.toString(16).padStart(2, '0')).join(' '));
-        
-        // Check for valid WASM magic number (0x00 0x61 0x73 0x6D)
-        if (wasmBytes.length < 4 || 
-            wasmBytes[0] !== 0x00 || 
-            wasmBytes[1] !== 0x61 || 
-            wasmBytes[2] !== 0x73 || 
-            wasmBytes[3] !== 0x6D) {
-            throw new Error("Invalid WASM binary (wrong magic number)");
+function createLoadingScreen() {
+    // Create loading screen container
+    const loadingScreen = document.createElement('div');
+    loadingScreen.id = 'loading-screen';
+    
+    // Create spinner element
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    
+    // Create loading text
+    const loadingText = document.createElement('div');
+    loadingText.className = 'loading-text';
+    loadingText.textContent = 'Loading WASM application...';
+    
+    // Create a style element for our CSS
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
         }
         
-        // Initialize WASM module using wasm_bindgen script
-        console.log("Initializing Bevy engine...");
-        await wasm_bindgen(wasmBytes);
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e9ecef;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
         
-        console.log("Bevy engine initialized successfully!");
+        .loading-text {
+            font-size: 18px;
+            color: #495057;
+        }
         
-    } catch (error) {
-        console.error("Error initializing Bevy:", error);
-        
-        // Show error on page
-        const errorElement = document.createElement("div");
-        errorElement.style.position = "absolute";
-        errorElement.style.top = "10px";
-        errorElement.style.left = "10px";
-        errorElement.style.zIndex = "1000";
-        errorElement.style.color = "red";
-        errorElement.style.backgroundColor = "rgba(0,0,0,0.7)";
-        errorElement.style.padding = "10px";
-        errorElement.style.borderRadius = "5px";
-        errorElement.style.fontFamily = "monospace";
-        errorElement.innerHTML = `<p>Bevy initialization error: ${error.message}</p>`;
-        document.body.appendChild(errorElement);
-        
-        throw error;
-    }
-}
-
-// convert base64 to ArrayBuffer u8 bytes
-function base64ToArrayBuffer(base64) {
-    // remove any whitespace that might have been introduced in the HTML
-    base64 = base64.replace(/\s/g, '');
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
     
-    // decode base64 to binary string
-    const binaryString = atob(base64);
+    // Append elements to the DOM
+    loadingScreen.appendChild(spinner);
+    loadingScreen.appendChild(loadingText);
+    document.head.appendChild(styleElement);
+    document.body.appendChild(loadingScreen);
     
-    // convert binary string to Uint8Array
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    return bytes;
+    // Return an object with methods to control the loading screen
+    return {
+        // Update the loading text
+        updateText: (text) => {
+            loadingText.textContent = text;
+        },
+        // Hide the loading screen
+        hide: () => {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        },
+        // Show the loading screen (in case it was hidden)
+        show: () => {
+            loadingScreen.style.display = 'flex';
+            setTimeout(() => {
+                loadingScreen.style.opacity = '1';
+            }, 10);
+        }
+    };
 }
 
 // main app function
 async function runApp() {
-    console.log("Starting Bevy application...");
+    // loading screen
+    const loadingScreen = createLoadingScreen();
+    console.log("Starting WASM application...");
     try {
         await setupWasm();
     } catch (error) {
-        console.error("Fatal error starting Bevy application:", error);
+        // have to catch the non error of using exceptions as control flow in bevy
+        console.error("Fatal error starting WASM application:", error);
+        //loadingScreen.updateText("Error loading application. Please refresh the page.");
     }
+    // hide loading screen once WASM is loaded
+    loadingScreen.updateText("Application ready!");
+    setTimeout(() => {
+        loadingScreen.hide();
+    }, 50); // Short delay to show "ready" message
 }
 
 // run app when the page is loaded
 window.addEventListener('DOMContentLoaded', runApp);
+
