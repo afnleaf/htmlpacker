@@ -44,7 +44,7 @@ features = [
     #"bevy_text",       # Text rendering
     #"bevy_ui",         # UI system
     "webgl2",          # WebGL2 support (crucial for web)
-    "png",             # Image support
+    #"png",             # Image support
     "tonemapping_luts",
 ]
 
@@ -57,8 +57,9 @@ opt-level = 3
 
 [package.metadata.wasm-pack.profile.release]
 #wasm-opt = ["-O1"]
-wasm-opt = false
-#wasm-opt = ["-O3", "--enable-mutable-globals"]
+#wasm-opt = false
+wasm-opt = ["-O3", "--enable-mutable-globals"]
+lto = true
 
 
 #[package]

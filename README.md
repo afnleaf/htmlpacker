@@ -13,7 +13,7 @@ a new form of offline OS agnostic application
 - [base94 - C](https://gist.github.com/iso2022jp/4054241) 👀
 
 
-## checkpoints
+## features
 - [x] text
 - [x] png
 - [x] wasm simple
@@ -26,10 +26,18 @@ a new form of offline OS agnostic application
 - [x] favicon svg
 - [ ] favicon all
 - [ ] lazy loading
-- [ ] brotli/gzip compression
-- [ ] base94
+- [x] brotli compression
+- [ ] base94 (slowww...)
 - [ ] wasm advanced
 - ???
+
+With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
+
+## todo
+- new animation
+- big png
+- basic game
+- single wasm-binary self loading
 
 ## compile
 wasm-pack build --target no-modules

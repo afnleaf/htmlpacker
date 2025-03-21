@@ -96,7 +96,7 @@ async function runApp() {
     loadingScreen.updateText("Application ready!");
     setTimeout(() => {
         loadingScreen.hide();
-    }, 50); // Short delay to show "ready" message
+    }, 100); // Short delay to show "ready" message
 }
 
 // run app when the page is loaded
