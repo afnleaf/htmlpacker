@@ -22,4 +22,4 @@ wasm-bindgen-futures = "0.4"
 #wasm-opt = ["-O1"]
 #wasm-opt = false
 wasm-opt = ["-O3", "--enable-mutable-globals"]
-lto = true
+#lto = true

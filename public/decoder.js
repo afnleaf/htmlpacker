@@ -25,7 +25,11 @@ async function setupWasm() {
         const compressedBytes = base64ToArrayBuffer(wasmMain64);
         //const compressedBytes = await wasm_decoder.decodeBase94(wasmBase64mod);
         const wasmBytes2 = await wasm_decoder.decompress(compressedBytes);
-        await wasm_bindgen(wasmBytes2);
+        const str = new TextDecoder("utf-8").decode(wasmBytes2);
+        const comp2 = base64ToArrayBuffer(str);
+        const w2 = await wasm_decoder.decompress(comp2);
+        //await wasm_bindgen(wasmBytes2);
+        await wasm_bindgen(w2);
         console.log("WASM module initialized successfully!");
     
     } catch (error) {

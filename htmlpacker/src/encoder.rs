@@ -119,10 +119,14 @@ pub fn encode_wasm_base64_brotli(
     // encode the compressed data as base64
     let encoded = BASE64_STANDARD.encode(&compressed_buffer);
     //let encoded = BASE64_STANDARD.encode(&buffer);
+    
+    // this might be cooked by we do it again
+    let comp2 = encode_brotli(&encoded.as_bytes().to_vec())?;
+    let encoded2 = BASE64_STANDARD.encode(&comp2);
 
     Ok(Base::new(
         String::from(id),
-        encoded
+        encoded2
     ))
 
 }

@@ -34,6 +34,7 @@ a new form of offline OS agnostic application
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
 
 ## todo
+- encode models and textures
 - new animation
 - big png
 - basic game

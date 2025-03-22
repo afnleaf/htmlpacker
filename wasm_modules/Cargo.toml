@@ -59,7 +59,7 @@ opt-level = 3
 #wasm-opt = ["-O1"]
 #wasm-opt = false
 wasm-opt = ["-O3", "--enable-mutable-globals"]
-lto = true
+#lto = true
 
 
 #[package]
