@@ -28,6 +28,7 @@ fn build_wasm(dir: &str) -> Result<(), Box<dyn Error>> {
     println!("Building WASM in {}", dir);
     Command::new("wasm-pack")
         .current_dir(dir)
+        //.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")  // Add this line
         .args(&[
             "build",
             "--target",
@@ -79,6 +80,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //println!("{:?}", icon_svg64);
     let icons = vec![icon_svg64];
 
+    // model
+    //let model64 = encoder::encode_model_base64_brotli("../public/Fox.glb", "fox")?;
+
     // external scripts to fetch
     let external_scripts_text = htmlpacker::get_external_scripts_text(
         external_scripts_list).await?;
@@ -112,7 +116,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         //text64,
         //png64,
         wasm_decoder64,
-        wasm_module64
+        wasm_module64,
+        //model64,
     ];
 
     let markup = htmlpacker::page(

@@ -121,14 +121,28 @@ pub fn encode_wasm_base64_brotli(
     //let encoded = BASE64_STANDARD.encode(&buffer);
     
     // this might be cooked by we do it again
-    let comp2 = encode_brotli(&encoded.as_bytes().to_vec())?;
-    let encoded2 = BASE64_STANDARD.encode(&comp2);
+    //let comp2 = encode_brotli(&encoded.as_bytes().to_vec())?;
+    //let encoded2 = BASE64_STANDARD.encode(&comp2);
 
     Ok(Base::new(
         String::from(id),
-        encoded2
+        encoded
     ))
+}
 
+// is this not the same as everything else?
+pub fn encode_model_base64_brotli(
+    model_path: &str,
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    let buffer = get_file_bytes(model_path)?;
+    //let compressed_buffer = encode_brotli(&buffer)?;
+    //let encoded = BASE64_STANDARD.encode(&compressed_buffer);
+    let encoded = BASE64_STANDARD.encode(&buffer);
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
 }
 
 /*
