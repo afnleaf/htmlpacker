@@ -30,14 +30,16 @@ put the wasm in the base64 lil bro
 - [ ] lazy loading
 - [x] brotli compression
 - [ ] base94 (slowww...)
+- [ ] cache api assets
 - [ ] wasm advanced
 - ???
 
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
 
 ## todo
-- fps indicator
+- [x] fps counter
 - encode textures
+- encode fonts
 - asset loader for textures
 - encode models/meshes/3d
 - asset loader for models
