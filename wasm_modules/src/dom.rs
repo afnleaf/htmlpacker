@@ -42,6 +42,16 @@ pub fn create_canvas() -> Result<(), JsValue> {
     
     // console log allows for debugging in browser
     web_sys::console::log_1(&"Canvas created successfully".into());
+    moyai()?;
+    moyai()?;
     
+    Ok(())
+}
+
+fn moyai() -> Result<(), JsValue> {
+    web_sys::console::log_2(
+        &JsValue::from_str("%c "),
+        &JsValue::from_str("font-size:250px;background:url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text y='0.95em' font-size='8'>👽</text></svg>\")"));
+        //&JsValue::from_str("font-size:250px;background:url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'> viewbox='0 0 10 10'><text y='0.95em' font-size='8'>🗿</text></svg>\")"));
     Ok(())
 }

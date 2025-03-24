@@ -1,7 +1,9 @@
 # htmlpacker
 embed all dependencies into a single html file
 
-a new form of offline OS agnostic application
+a new form of offline, OS agnostic, browser based application
+
+put the wasm in the base64 lil bro
 
 ## resources
 - [utf-8](https://en.wikipedia.org/wiki/UTF-8)
@@ -34,13 +36,18 @@ a new form of offline OS agnostic application
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
 
 ## todo
-- encode models and textures
-- new animation
+- fps indicator
+- encode textures
+- asset loader for textures
+- encode models/meshes/3d
+- asset loader for models
 - big png
+- new animation
 - basic game
 - single wasm-binary self loading
 
 ## compile
-wasm-pack build --target no-modules
+wasm: `wasm-pack build --target no-modules`
 
-
+## notes
+what computer you compile on will leak bevy crate stuff, how to prevent?

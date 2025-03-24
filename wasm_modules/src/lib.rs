@@ -3,14 +3,19 @@ use web_sys;
 //use base64::prelude::*;
 use std::f32::consts::PI;
 //use std::time::Duration;
-
+//use iyes_perf_ui::prelude::*;
+//use bevy_mini_fps::fps_plugin;
 use bevy::{
     color::palettes::basic::SILVER,
+    color::palettes::css::GOLD,
     //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
+    //ui::TextStyle,
+    //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
     //window::WindowResized
 };
@@ -44,16 +49,28 @@ pub fn start_bevy() {
             }),
             ..default()
         }))
+        
+        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        //.add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
+        //.add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
+        //.add_plugins(bevy::render::diagnostic::RenderDiagnosticsPlugin)
+        //.add_plugins(FrameTimeDiagnosticsPlugin) 
+        //.add_plugins(PerfUiPlugin)
+        //.add_plugins(fps_plugin!())
+        
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 rotate,
+                text_update_system, text_color_system
                 //on_resize,
             ),
         )
         .run();
 }
+
+// need a font system
 
 
 // A marker component for our shapes so we can query them separately from the ground plane
@@ -69,6 +86,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    _asset_server: Res<AssetServer>,
 ) {
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -152,6 +170,87 @@ fn setup(
         Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
     ));
 
+    /*
+    //let font = asset_server.load("fonts/your_font.ttf");
+    let font: Handle<Font> = Default::default();
+    // You may need to register the font as the default UI font
+    //commands.insert_resource(UiFont(font));
+    commands.spawn(TextBundle::from_section(
+        "FPS: ...", // Update this text as needed
+        TextStyle {
+            font,
+            font_size: 16.0,
+            color: Color::WHITE,
+        },
+    ));
+    //commands.spawn(PerfUiAllEntries::default());
+    commands.spawn((
+        PerfUiRoot {
+            display_labels: false,
+            layout_horizontal: true,
+            values_col_width: 32.0,
+            ..default()
+        },
+        PerfUiEntryFPSWorst::default(),
+        PerfUiEntryFPS::default(),
+    ));
+    */
+
+    // Text with one section
+    commands.spawn((
+        // Accepts a `String` or any type that converts into a `String`, such as `&str`
+        Text::new("hello\nbevy!"),
+        TextFont {
+            // This font is loaded and will be used instead of the default font.
+            //font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font_size: 67.0,
+            ..default()
+        },
+        // Set the justification of the Text
+        TextLayout::new_with_justify(JustifyText::Center),
+        // Set the style of the Node itself.
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            right: Val::Px(5.0),
+            ..default()
+        },
+        ColorText,
+    ));
+
+    // Empty text for the parent to satisfy Bevy’s hierarchy
+    // WHY, im not sure
+    commands
+    .spawn((
+        Text::default(),
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(5.0),
+            ..default()
+        },
+    ))
+    .with_child((
+        TextSpan::default(),
+        TextFont {
+            font_size: 24.0,
+            ..default()
+        },
+        TextColor(GOLD.into()),
+        FpsText,
+    ));
+
+    commands.spawn((
+        // Here we are able to call the `From` method instead of creating a new `TextSection`.
+        // This will use the default font (a minimal subset of FiraMono) and apply the default styling.
+        Text::new("From an &str into a Text with the default font!"),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Px(15.0),
+            ..default()
+        },
+    ));
+
 }
 
 fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
@@ -191,4 +290,37 @@ fn uv_debug_texture() -> Image {
 
 
 // FPS COUNTER -------------------------------------------------
+// A unit struct to help identify the FPS UI component, since there may be many Text components
+#[derive(Component)]
+struct FpsText;
 
+// A unit struct to help identify the color-changing Text component
+#[derive(Component)]
+struct ColorText;
+
+fn text_color_system(time: Res<Time>, mut query: Query<&mut TextColor, With<ColorText>>) {
+    for mut text_color in &mut query {
+        let seconds = time.elapsed_secs();
+
+        // Update the color of the ColorText span.
+        text_color.0 = Color::srgb(
+            ops::sin(1.25 * seconds) / 2.0 + 0.5,
+            ops::sin(0.75 * seconds) / 2.0 + 0.5,
+            ops::sin(0.50 * seconds) / 2.0 + 0.5,
+        );
+    }
+}
+
+fn text_update_system(
+    diagnostics: Res<DiagnosticsStore>,
+    mut query: Query<&mut TextSpan, With<FpsText>>,
+) {
+    for mut span in &mut query {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(value) = fps.smoothed() {
+                // Update the value of the second section
+                **span = format!("{value:.2}");
+            }
+        }
+    }
+}

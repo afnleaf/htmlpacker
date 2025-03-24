@@ -14,6 +14,8 @@ then encode it in base64
 use std::error::Error;
 use std::process::Command;
 use std::path::Path;
+use tokio::task;
+use futures::future::join_all;
 //use std::fs;
 // crates
 // use tokio;
@@ -24,6 +26,9 @@ use ::htmlpacker::htmlpacker;
 
 
 //wasm-pack build --target no-modules
+//.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")
+// this line is for when we add random
+/*
 fn build_wasm(dir: &str) -> Result<(), Box<dyn Error>> {
     println!("Building WASM in {}", dir);
     Command::new("wasm-pack")
@@ -36,17 +41,55 @@ fn build_wasm(dir: &str) -> Result<(), Box<dyn Error>> {
         ])
         .status()
         .expect("Failed to compile WASM.");
-    println!("WASM compiled.");
-
+    println!("WASM compiled in {}.", dir);
     Ok(())
 }
+*/
+async fn build_wasm(
+    dir: &str
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    println!("Building WASM in {}", dir);
+
+    // spawn command in blocking task
+    let dir_owned = dir.to_string();
+    let status = task::spawn_blocking(move || {
+        Command::new("wasm-pack")
+            .current_dir(&dir_owned)
+            .args(&[
+                "build",
+                "--target",
+                "no-modules",
+            ])
+            .status()
+    })
+    .await?;
+
+    if !status?.success() {
+        return Err(format!("Failed to compiled WASM in {}", dir).into());
+    }
+
+    println!("WASM compiled in {}.", dir);
+    Ok(())
+}
+
 
 // async !!
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
-    build_wasm("../wasm_decoder").unwrap();
-    build_wasm("../wasm_modules").unwrap();
+    //build_wasm("../wasm_decoder").unwrap();
+    //build_wasm("../wasm_modules").unwrap();
+    
+    let builds = vec![
+        tokio::spawn(build_wasm("../wasm_decoder")),
+        tokio::spawn(build_wasm("../wasm_modules")),
+    ];
+    
+    // Wait for all builds to complete
+    for join_handle in join_all(builds).await {
+        // Unwrap the JoinHandle result, then propagate any error from the build
+        let _ = join_handle?;
+    }
 
     // metadata
     let css_urls = vec![
