@@ -2,10 +2,12 @@ use wasm_bindgen::prelude::*;
 use web_sys;
 //use base64::prelude::*;
 use std::f32::consts::PI;
+use std::path::Path;
 //use std::time::Duration;
 //use iyes_perf_ui::prelude::*;
 //use bevy_mini_fps::fps_plugin;
 use bevy::{
+    asset::{embedded_asset, io::AssetSourceId, AssetPath},
     color::palettes::basic::SILVER,
     color::palettes::css::GOLD,
     //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -19,6 +21,7 @@ use bevy::{
     prelude::*,
     //window::WindowResized
 };
+//use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 mod dom;
 
@@ -38,17 +41,21 @@ pub fn start() {
 pub fn start_bevy() {
     // initialize Bevy
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                // use the canvas we just created
-                // is there a better way to do this?
-                canvas: Some("#canvas".to_string()),
-                fit_canvas_to_parent: true,
-                prevent_default_event_handling: false,
+        .add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    // use the canvas we just created
+                    // is there a better way to do this?
+                    canvas: Some("#canvas".to_string()),
+                    fit_canvas_to_parent: true,
+                    prevent_default_event_handling: false,
+                    ..default()
+                }),
                 ..default()
             }),
-            ..default()
-        }))
+            //EmbeddedAssetPlugin::default()
+            EmbeddedAssetPlugin
+        ))
         
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         //.add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
@@ -70,7 +77,22 @@ pub fn start_bevy() {
         .run();
 }
 
-// need a font system
+
+struct EmbeddedAssetPlugin;
+
+impl Plugin for EmbeddedAssetPlugin {
+    fn build(&self, app: &mut App) {
+        // We get to choose some prefix relative to the workspace root which
+        // will be ignored in "embedded://" asset paths.
+        //let omit_prefix = "assets/textures";
+        //let omit_prefix = "assets";
+        // Path to asset must be relative to this file, because that's how
+        // include_bytes! works.
+        //embedded_asset!(app, omit_prefix, "pyramid.png");
+        //embedded_asset!(app, omit_prefix, "../assets/textures/pyramid.png");
+        embedded_asset!(app, "", "../assets/textures/pyramid.png");
+    }
+}
 
 
 // A marker component for our shapes so we can query them separately from the ground plane
@@ -88,10 +110,49 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
+    // embedded assets --------------------------------------------------------
+    //let crate_name = "embedded_asset";
+
+    // The actual file path relative to workspace root is
+    // "examples/asset/files/bevy_pixel_light.png".
+    //
+    // We omit the "examples/asset" from the embedded_asset! call and replace it
+    // with the crate name.
+    //let path = Path::new(crate_name).join("pyramid.png");
+    //let source = AssetSourceId::from("embedded");
+    //let asset_path = AssetPath::from_path(&path).with_source(source);
+
+    //let path = Path::new("assets").join("textures/pyramid.png");
+    //let source = AssetSourceId::from("embedded");
+    //let asset_path = AssetPath::from_path(&path).with_source(source);
+
+    //// You could also parse this URL-like string representation for the asset
+    //// path.
+    //assert_eq!(
+    //    asset_path,
+    //    "embedded://assets/textures/pyramid.png".into()
+    //);
+    //
+    // Use your crate name here
+    let crate_name = "wasm_modules"; // or whatever your crate name is
+    
+    let path = Path::new(crate_name).join("../assets/textures/pyramid.png");
+    // OR if you used the second approach:
+    // let path = Path::new(crate_name).join("textures/pyramid.png");
+    let source = AssetSourceId::from("embedded");
+    let asset_path = AssetPath::from_path(&path).with_source(source);    
+
+    //commands.spawn(Sprite::from_image(asset_server.load(asset_path)));
+    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
+    println!("Current directory: {:?}", std::env::current_dir().unwrap());
+    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
+    let pyramid_handle = asset_server.load(asset_path);
+
+
     // create materials -------------------------------------------------------
     // load a texture and retrieve its aspect ratio
     //let texture_handle = asset_server.load("textures/array_texture.png");
-    let pyramid_handle = asset_server.load("textures/pyramid.png");
+    //let pyramid_handle = asset_server.load("textures/pyramid.png");
     
   
     let debug_material = materials.add(StandardMaterial {
@@ -105,100 +166,11 @@ fn setup(
         base_color_texture: Some(pyramid_handle.clone()),
         ..default()
     });
-
-    // loading image from embedded base64
-    /* 
-    // load at runtime
-    // Create a new image (64x64 red square)
-    let mut image_data = Vec::with_capacity(64 * 64 * 4);
-    for _ in 0..(64 * 64) {
-        // RGBA: Red, fully opaque
-        image_data.extend_from_slice(&[255, 0, 0, 255]);
-    }
     
-    let image = Image::new(
-        Extent3d {
-            width: 64,
-            height: 64,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        image_data,
-        TextureFormat::Rgba8UnormSrgb,
-        ImageSampler::default(),
-    );
-    
-    // Add the image to the asset system and get a handle
-    let image_handle = asset_server.add(image);
-    
-    // Spawn a sprite using the created image
-    commands.spawn(SpriteBundle {
-        texture: image_handle,
-        ..default()
-    });
 
 
-    // If you know the images you need at compile time, a simpler approach is to use Bevy's embedded assets feature:
-    // Embed the PNG data directly in the binary
-    bevy::asset::embedded_asset!(EMBEDDED_ICON, "path/to/your/icon.png");
-    
-    // Load the embedded asset using the AssetServer
-    let icon_handle = asset_server.load(EMBEDDED_ICON);
 
 
-    // Decode the base64 data
-    let image_data = STANDARD.decode(base64_clean).expect("Failed to decode base64 data");
-    
-    // Create a new Bevy Image asset from the decoded data
-    let image = Image::from_buffer(
-        &image_data,
-        bevy::render::texture::ImageType::Extension("png"),
-        ImageSampler::default(),
-        false,
-    ).expect("Failed to create image from buffer");
-
-// Add the image to Bevy's asset system
-    let image_handle = asset_server.add(image);
-    
-    // Store the handle somewhere accessible, for example in a resource
-    app.world.insert_resource(CustomImageResource(image_handle));
-
-// A resource to store our loaded image handle
-#[derive(Resource)]
-struct CustomImageResource(Handle<Image>);
-
-    */
-
-
-    /*
-    let aspect = 0.25;
-    // create a new quad mesh. this is what we will apply the texture to
-    //let quad_width = 8.0;
-    //let quad_handle = meshes.add(Rectangle::new(quad_width, quad_width * aspect));
-    // this material renders the texture normally
-    let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(texture_handle.clone()),
-        alpha_mode: AlphaMode::Blend,
-        unlit: true,
-        ..default()
-    });
-    // this material modulates the texture to make it red (and slightly transparent)
-    let red_material_handle = materials.add(StandardMaterial {
-        base_color: Color::srgba(1.0, 0.0, 0.0, 0.5),
-        base_color_texture: Some(texture_handle.clone()),
-        alpha_mode: AlphaMode::Blend,
-        unlit: true,
-        ..default()
-    });
-
-    // and lets make this one blue! (and also slightly transparent)
-    let blue_material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(texture_handle),
-        alpha_mode: AlphaMode::Blend,
-        unlit: true,
-        ..default()
-    });
-    */
     
     // create meshes ----------------------------------------------------------
     let shapes = [
@@ -342,6 +314,7 @@ struct CustomImageResource(Handle<Image>);
     // end of setup -----------------------------------------------------------
     // how do we split this up while keeping the references intact?
 }
+
 
 fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {

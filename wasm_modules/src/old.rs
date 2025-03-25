@@ -356,3 +356,93 @@ fn on_resize(
         PerfUiEntryFPS::default(),
     ));
     */
+    /*
+    let aspect = 0.25;
+    // create a new quad mesh. this is what we will apply the texture to
+    //let quad_width = 8.0;
+    //let quad_handle = meshes.add(Rectangle::new(quad_width, quad_width * aspect));
+    // this material renders the texture normally
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(texture_handle.clone()),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
+    // this material modulates the texture to make it red (and slightly transparent)
+    let red_material_handle = materials.add(StandardMaterial {
+        base_color: Color::srgba(1.0, 0.0, 0.0, 0.5),
+        base_color_texture: Some(texture_handle.clone()),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
+
+    // and lets make this one blue! (and also slightly transparent)
+    let blue_material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(texture_handle),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
+    */    // loading image from embedded base64
+    /* 
+    // load at runtime
+    // Create a new image (64x64 red square)
+    let mut image_data = Vec::with_capacity(64 * 64 * 4);
+    for _ in 0..(64 * 64) {
+        // RGBA: Red, fully opaque
+        image_data.extend_from_slice(&[255, 0, 0, 255]);
+    }
+    
+    let image = Image::new(
+        Extent3d {
+            width: 64,
+            height: 64,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        image_data,
+        TextureFormat::Rgba8UnormSrgb,
+        ImageSampler::default(),
+    );
+    
+    // Add the image to the asset system and get a handle
+    let image_handle = asset_server.add(image);
+    
+    // Spawn a sprite using the created image
+    commands.spawn(SpriteBundle {
+        texture: image_handle,
+        ..default()
+    });
+
+
+    // If you know the images you need at compile time, a simpler approach is to use Bevy's embedded assets feature:
+    // Embed the PNG data directly in the binary
+    bevy::asset::embedded_asset!(EMBEDDED_ICON, "path/to/your/icon.png");
+    
+    // Load the embedded asset using the AssetServer
+    let icon_handle = asset_server.load(EMBEDDED_ICON);
+
+
+    // Decode the base64 data
+    let image_data = STANDARD.decode(base64_clean).expect("Failed to decode base64 data");
+    
+    // Create a new Bevy Image asset from the decoded data
+    let image = Image::from_buffer(
+        &image_data,
+        bevy::render::texture::ImageType::Extension("png"),
+        ImageSampler::default(),
+        false,
+    ).expect("Failed to create image from buffer");
+
+// Add the image to Bevy's asset system
+    let image_handle = asset_server.add(image);
+    
+    // Store the handle somewhere accessible, for example in a resource
+    app.world.insert_resource(CustomImageResource(image_handle));
+
+// A resource to store our loaded image handle
+#[derive(Resource)]
+struct CustomImageResource(Handle<Image>);
+
+    */
