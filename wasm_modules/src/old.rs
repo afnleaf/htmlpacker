@@ -331,3 +331,28 @@ fn on_resize(
 
 }
 */
+    /*
+    //let font = asset_server.load("fonts/your_font.ttf");
+    let font: Handle<Font> = Default::default();
+    // You may need to register the font as the default UI font
+    //commands.insert_resource(UiFont(font));
+    commands.spawn(TextBundle::from_section(
+        "FPS: ...", // Update this text as needed
+        TextStyle {
+            font,
+            font_size: 16.0,
+            color: Color::WHITE,
+        },
+    ));
+    //commands.spawn(PerfUiAllEntries::default());
+    commands.spawn((
+        PerfUiRoot {
+            display_labels: false,
+            layout_horizontal: true,
+            values_col_width: 32.0,
+            ..default()
+        },
+        PerfUiEntryFPSWorst::default(),
+        PerfUiEntryFPS::default(),
+    ));
+    */
