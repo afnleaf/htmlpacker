@@ -446,3 +446,60 @@ fn on_resize(
 struct CustomImageResource(Handle<Image>);
 
     */
+    
+// embedded assets --------------------------------------------------------
+    //let crate_name = "embedded_asset";
+
+    // The actual file path relative to workspace root is
+    // "examples/asset/files/bevy_pixel_light.png".
+    //
+    // We omit the "examples/asset" from the embedded_asset! call and replace it
+    // with the crate name.
+    //let path = Path::new(crate_name).join("pyramid.png");
+    //let source = AssetSourceId::from("embedded");
+    //let asset_path = AssetPath::from_path(&path).with_source(source);
+
+    //let path = Path::new("assets").join("textures/pyramid.png");
+    //let source = AssetSourceId::from("embedded");
+    //let asset_path = AssetPath::from_path(&path).with_source(source);
+
+    //// You could also parse this URL-like string representation for the asset
+    //// path.
+    //assert_eq!(
+    //    asset_path,
+    //    "embedded://assets/textures/pyramid.png".into()
+    //);
+    //
+/*
+    // Use your crate name here
+    let crate_name = "wasm_modules"; // or whatever your crate name is
+    
+    let path = Path::new(crate_name).join("../assets/textures/pyramid.png");
+    // OR if you used the second approach:
+    // let path = Path::new(crate_name).join("textures/pyramid.png");
+    let source = AssetSourceId::from("embedded");
+    let asset_path = AssetPath::from_path(&path).with_source(source);    
+
+    //commands.spawn(Sprite::from_image(asset_server.load(asset_path)));
+    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
+    println!("Current directory: {:?}", std::env::current_dir().unwrap());
+    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
+    let pyramid_handle = asset_server.load(asset_path);
+struct EmbeddedAssetPlugin;
+
+impl Plugin for EmbeddedAssetPlugin {
+    fn build(&self, app: &mut App) {
+        // We get to choose some prefix relative to the workspace root which
+        // will be ignored in "embedded://" asset paths.
+        //let omit_prefix = "assets/textures";
+        //let omit_prefix = "assets";
+        // Path to asset must be relative to this file, because that's how
+        // include_bytes! works.
+        //embedded_asset!(app, omit_prefix, "pyramid.png");
+        //embedded_asset!(app, omit_prefix, "../assets/textures/pyramid.png");
+        embedded_asset!(app, "", "../assets/textures/pyramid.png");
+    }
+}
+            //EmbeddedAssetPlugin::default()
+            EmbeddedAssetPlugin
+*/

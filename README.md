@@ -38,11 +38,11 @@ With these current implemented features, we have a solid backbone for the htmlpa
 
 ## todo
 - [x] fps counter
-- encode textures
-- encode fonts
-- asset loader for textures
-- encode models/meshes/3d
+- [x] encode textures
+- [ ] encode models/meshes/3d
+- [ ] simple asset loader for textures
 - asset loader for models
+- encode fonts
 - big png
 - new animation
 - basic game
@@ -53,3 +53,6 @@ wasm: `wasm-pack build --target no-modules`
 
 ## notes
 what computer you compile on will leak bevy crate stuff, how to prevent?
+
+embedding textures at compile time within the rust binary does not work for a wasm target. moving to base64 + compression + decoder + custom asset loader.
+

@@ -1,13 +1,11 @@
 use wasm_bindgen::prelude::*;
 use web_sys;
-//use base64::prelude::*;
+use base64::prelude::*;
 use std::f32::consts::PI;
-use std::path::Path;
+//use std::path::Path;
 //use std::time::Duration;
-//use iyes_perf_ui::prelude::*;
-//use bevy_mini_fps::fps_plugin;
 use bevy::{
-    asset::{embedded_asset, io::AssetSourceId, AssetPath},
+    //asset::{embedded_asset, io::AssetSourceId, AssetPath},
     color::palettes::basic::SILVER,
     color::palettes::css::GOLD,
     //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -18,10 +16,15 @@ use bevy::{
     //ui::TextStyle,
     //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    image::{
+        Image,
+        ImageType,
+        ImageSampler,
+        CompressedImageFormats
+    },
     prelude::*,
     //window::WindowResized
 };
-//use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 mod dom;
 
@@ -41,7 +44,7 @@ pub fn start() {
 pub fn start_bevy() {
     // initialize Bevy
     App::new()
-        .add_plugins((
+        .add_plugins(
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     // use the canvas we just created
@@ -53,23 +56,15 @@ pub fn start_bevy() {
                 }),
                 ..default()
             }),
-            //EmbeddedAssetPlugin::default()
-            EmbeddedAssetPlugin
-        ))
+        )
         
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        //.add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-        //.add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-        //.add_plugins(bevy::render::diagnostic::RenderDiagnosticsPlugin)
-        //.add_plugins(FrameTimeDiagnosticsPlugin) 
-        //.add_plugins(PerfUiPlugin)
-        //.add_plugins(fps_plugin!())
         
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
-                rotate,
+                rotate_shapes,
                 text_update_system, text_color_system
                 //on_resize,
             ),
@@ -78,21 +73,6 @@ pub fn start_bevy() {
 }
 
 
-struct EmbeddedAssetPlugin;
-
-impl Plugin for EmbeddedAssetPlugin {
-    fn build(&self, app: &mut App) {
-        // We get to choose some prefix relative to the workspace root which
-        // will be ignored in "embedded://" asset paths.
-        //let omit_prefix = "assets/textures";
-        //let omit_prefix = "assets";
-        // Path to asset must be relative to this file, because that's how
-        // include_bytes! works.
-        //embedded_asset!(app, omit_prefix, "pyramid.png");
-        //embedded_asset!(app, omit_prefix, "../assets/textures/pyramid.png");
-        embedded_asset!(app, "", "../assets/textures/pyramid.png");
-    }
-}
 
 
 // A marker component for our shapes so we can query them separately from the ground plane
@@ -110,43 +90,23 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // embedded assets --------------------------------------------------------
-    //let crate_name = "embedded_asset";
-
-    // The actual file path relative to workspace root is
-    // "examples/asset/files/bevy_pixel_light.png".
-    //
-    // We omit the "examples/asset" from the embedded_asset! call and replace it
-    // with the crate name.
-    //let path = Path::new(crate_name).join("pyramid.png");
-    //let source = AssetSourceId::from("embedded");
-    //let asset_path = AssetPath::from_path(&path).with_source(source);
-
-    //let path = Path::new("assets").join("textures/pyramid.png");
-    //let source = AssetSourceId::from("embedded");
-    //let asset_path = AssetPath::from_path(&path).with_source(source);
-
-    //// You could also parse this URL-like string representation for the asset
-    //// path.
-    //assert_eq!(
-    //    asset_path,
-    //    "embedded://assets/textures/pyramid.png".into()
-    //);
-    //
-    // Use your crate name here
-    let crate_name = "wasm_modules"; // or whatever your crate name is
-    
-    let path = Path::new(crate_name).join("../assets/textures/pyramid.png");
-    // OR if you used the second approach:
-    // let path = Path::new(crate_name).join("textures/pyramid.png");
-    let source = AssetSourceId::from("embedded");
-    let asset_path = AssetPath::from_path(&path).with_source(source);    
-
-    //commands.spawn(Sprite::from_image(asset_server.load(asset_path)));
-    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
-    println!("Current directory: {:?}", std::env::current_dir().unwrap());
-    //let pyramid_handle = asset_server.load("embedded://assets/textures/pyramid.png");
-    let pyramid_handle = asset_server.load(asset_path);
+    // load base64 textures ---------------------------------------------------
+    // find the id
+    // window and document DOM
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let element = document.get_element_by_id("bin-png").unwrap();
+    let text_content = element.text_content().unwrap();
+    let binary_data: Vec<u8> = BASE64_STANDARD.decode(text_content).unwrap();
+    let pyramid_image = Image::from_buffer(
+        &binary_data,
+        ImageType::Extension("png"), // Or detect format from data
+        CompressedImageFormats::default(),
+        true,
+        ImageSampler::default(),
+        RenderAssetUsages::default(),
+    ).unwrap();
+    let pyramid_handle = asset_server.add(pyramid_image);
 
 
     // create materials -------------------------------------------------------
@@ -166,11 +126,6 @@ fn setup(
         base_color_texture: Some(pyramid_handle.clone()),
         ..default()
     });
-    
-
-
-
-
     
     // create meshes ----------------------------------------------------------
     let shapes = [
@@ -281,8 +236,7 @@ fn setup(
 
     // Empty text for the parent to satisfy Bevy’s hierarchy
     // WHY, im not sure
-    commands
-    .spawn((
+    commands.spawn((
         Text::default(),
         Node {
             position_type: PositionType::Absolute,
@@ -316,7 +270,7 @@ fn setup(
 }
 
 
-fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
+fn rotate_shapes(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_secs() / 2.);
     }

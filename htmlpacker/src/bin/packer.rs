@@ -15,7 +15,7 @@ use std::error::Error;
 use std::process::Command;
 use std::path::Path;
 use tokio::task;
-use futures::future::join_all;
+//use futures::future::join_all;
 //use std::fs;
 // crates
 // use tokio;
@@ -65,6 +65,7 @@ async fn build_wasm(
     .await?;
 
     if !status?.success() {
+        println!("HELO THERE!");
         return Err(format!("Failed to compiled WASM in {}", dir).into());
     }
 
@@ -72,14 +73,12 @@ async fn build_wasm(
     Ok(())
 }
 
-
-// async !!
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    // make sure to compile our wasm binaries and js glue first
+async fn compile_wasm_modules() -> Result<(), Box<dyn Error>> {
     //build_wasm("../wasm_decoder").unwrap();
     //build_wasm("../wasm_modules").unwrap();
-    
+   
+    /*
+
     let builds = vec![
         tokio::spawn(build_wasm("../wasm_decoder")),
         tokio::spawn(build_wasm("../wasm_modules")),
@@ -90,6 +89,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // Unwrap the JoinHandle result, then propagate any error from the build
         let _ = join_handle?;
     }
+    */
+    let decoder_build = build_wasm("../wasm_decoder");
+    let modules_build = build_wasm("../wasm_modules");
+    
+    // Join both futures and get their results
+    let (decoder_result, modules_result) = tokio::join!(decoder_build, modules_build);
+    
+    // Check results - exit with error code if any build failed
+    if let Err(err) = decoder_result {
+        eprintln!("Decoder build failed: {}", err);
+        std::process::exit(1);
+    }
+    
+    if let Err(err) = modules_result {
+        eprintln!("Modules build failed: {}", err);
+        std::process::exit(1);
+    }
+    
+    // If we get here, both builds succeeded
+    println!("All WASM builds completed successfully!");
+    Ok(())
+}
+
+
+// async !!
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    // make sure to compile our wasm binaries and js glue first
+    compile_wasm_modules().await?;
 
     // metadata
     let css_urls = vec![
@@ -155,11 +183,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
     //println!("{:#?}", &text64);
     //println!("{:#?}", &png64);
+    let texture64 = encoder::encode_png_base64(
+        "../wasm_modules/assets/textures/pyramid.png", 
+        "bin-png")?;
+    
     let bin: Vec<encoder::Base> = vec![
         //text64,
         //png64,
         wasm_decoder64,
         wasm_module64,
+        texture64,
         //model64,
     ];
 
