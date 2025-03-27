@@ -151,8 +151,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //println!("{:?}", icon_svg64);
     let icons = vec![icon_svg64];
 
-    // model
-    //let model64 = encoder::encode_model_base64_brotli("../public/Fox.glb", "fox")?;
 
     // external scripts to fetch
     let external_scripts_text = htmlpacker::get_external_scripts_text(
@@ -163,8 +161,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         local_scripts_list)?;
     //println!("{:?}", external_scripts_text);
     //println!("{:?}", local_scripts_text);
-    // rename wasm_bindgen
-    //local_scripts_text[0] = rename_wasm_bindgen(local_scripts_text[0], "poop"); 
+
+    // rename wasm_bindgen so that we don't have double definition conflicts
     local_scripts_text[0] = local_scripts_text[0].replace(
         "wasm_bindgen",
         "wasm_decoder");
@@ -183,16 +181,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
     //println!("{:#?}", &text64);
     //println!("{:#?}", &png64);
-    let texture64 = encoder::encode_png_base64(
-        "../wasm_modules/assets/textures/pyramid.png", 
-        "bin-png")?;
+    //let texture64 = encoder::encode_png_base64(
+    //    "../wasm_modules/assets/textures/pyramid.png", 
+    //    "bin-png")?;
+    
+    // model
+    //let model64 = encoder::encode_model_base64(
+    //    "../public/Fox.glb", "fox")?;
     
     let bin: Vec<encoder::Base> = vec![
         //text64,
         //png64,
         wasm_decoder64,
         wasm_module64,
-        texture64,
+        //texture64,
         //model64,
     ];
 

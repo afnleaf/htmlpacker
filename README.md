@@ -42,6 +42,7 @@ With these current implemented features, we have a solid backbone for the htmlpa
 - [ ] encode models/meshes/3d
 - [ ] simple asset loader for textures
 - asset loader for models
+- basis universal 
 - encode fonts
 - big png
 - new animation

@@ -131,7 +131,7 @@ pub fn encode_wasm_base64_brotli(
 }
 
 // is this not the same as everything else?
-pub fn encode_model_base64_brotli(
+pub fn encode_model_base64(
     model_path: &str,
     id: &str,
 ) -> Result<Base, Box<dyn Error>> {

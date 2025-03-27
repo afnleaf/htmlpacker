@@ -1,20 +1,26 @@
 use wasm_bindgen::prelude::*;
-use web_sys;
-use base64::prelude::*;
+//use web_sys::{Url, Blob};
+//use js_sys::{Uint8Array, Array};
+//use base64::prelude::*;
 use std::f32::consts::PI;
-//use std::path::Path;
+//use gltf::Gltf;
+//use std::path::PathBuf;
 //use std::time::Duration;
 use bevy::{
     //asset::{embedded_asset, io::AssetSourceId, AssetPath},
+    //asset::{
+        //io::embedded::{EmbeddedAssetRegistry},
+        //embedded_asset,
+    //},
+    //asset::{HandleId, AssetPath, Assets, LoadState},
     color::palettes::basic::SILVER,
     color::palettes::css::GOLD,
-    //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     render::{
+        mesh::*,
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
     //ui::TextStyle,
-    //diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     image::{
         Image,
@@ -22,9 +28,16 @@ use bevy::{
         ImageSampler,
         CompressedImageFormats
     },
+    scene::{
+        //Scene,
+        SceneRoot
+    },
+    //utils::HashMap,
+    //gltf::{Gltf, GltfMesh, GltfNode, GltfPrimitive},
     prelude::*,
     //window::WindowResized
 };
+use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 mod dom;
 
@@ -43,23 +56,31 @@ pub fn start() {
 
 pub fn start_bevy() {
     // initialize Bevy
-    App::new()
-        .add_plugins(
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    // use the canvas we just created
-                    // is there a better way to do this?
-                    canvas: Some("#canvas".to_string()),
-                    fit_canvas_to_parent: true,
-                    prevent_default_event_handling: false,
-                    ..default()
-                }),
+    let mut app = App::new();
+
+    // this first
+    app.add_plugins(EmbeddedAssetPlugin {
+        mode: PluginMode::ReplaceDefault,
+    });
+
+    // add default plugins
+    app.add_plugins(
+        DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                // use the canvas we just created
+                // is there a better way to do this?
+                canvas: Some("#canvas".to_string()),
+                fit_canvas_to_parent: true,
+                prevent_default_event_handling: false,
                 ..default()
             }),
-        )
-        
+            ..default()
+        }),
+    );
+
+
+    app    
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -74,7 +95,6 @@ pub fn start_bevy() {
 
 
 
-
 // A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component)]
 struct Shape;
@@ -82,6 +102,10 @@ struct Shape;
 const SHAPES_X_EXTENT: f32 = 14.0;
 const EXTRUSION_X_EXTENT: f32 = 16.0;
 const Z_EXTENT: f32 = 5.0;
+
+const TEXTURE_DATA: &[u8] = include_bytes!("../assets/textures/pyramid.png");
+//const FOX_MODEL: &[u8] = include_bytes!("../assets/models/Fox.glb");
+
 
 fn setup(
     mut commands: Commands,
@@ -93,13 +117,17 @@ fn setup(
     // load base64 textures ---------------------------------------------------
     // find the id
     // window and document DOM
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
-    let element = document.get_element_by_id("bin-png").unwrap();
-    let text_content = element.text_content().unwrap();
-    let binary_data: Vec<u8> = BASE64_STANDARD.decode(text_content).unwrap();
+    //let window = web_sys::window().unwrap();
+    //let document = window.document().unwrap();
+
+    // pyramid png
+    //let png_element = document.get_element_by_id("bin-png").unwrap();
+    //let png_text = png_element.text_content().unwrap();
+    //let png_bin_data: Vec<u8> = BASE64_STANDARD.decode(png_text).unwrap();
+    
     let pyramid_image = Image::from_buffer(
-        &binary_data,
+        //&png_bin_data,
+        TEXTURE_DATA,
         ImageType::Extension("png"), // Or detect format from data
         CompressedImageFormats::default(),
         true,
@@ -108,12 +136,44 @@ fn setup(
     ).unwrap();
     let pyramid_handle = asset_server.add(pyramid_image);
 
+    // fox model
+    /*
+    let model_ele = document.get_element_by_id("fox").unwrap();
+    let model_text = model_ele.text_content().unwrap();
+    let model_data: Vec<u8> = BASE64_STANDARD.decode(model_text).unwrap();
+    */
+    //let model_text = document
+    //    .get_element_by_id("fox").unwrap().text_content().unwrap();
+    //let model_data = BASE64_STANDARD.decode(&model_text).unwrap();
+    //web_sys::console::log_1(&format!("{}", model_text).into());
+   
+
+    // FOX TESTING ------------------------------------------------------------
+    // Let's try creating a Scene directly from the bytes
+    //    "models/Fox.glb#Scene0",
+
+    // Load the Fox.glb scene
+    // The file at 'models/Fox.glb' does not contain the labeled asset 'Scene1'; it contains the following 36 assets: 'Animation0', 'Animation1', 'Animation2', 'Material0', 'Mesh0', 'Mesh0/Primitive0', 'Node0', 'Node1', 'Node10', 'Node11', 'Node12', 'Node13', 'Node14', 'Node15', 'Node16', 'Node17', 'Node18', 'Node19', 'Node2', 'Node20', 'Node21', 'Node22', 'Node23', 'Node24', 'Node25', 'Node3', 'Node4', 'Node5', 'Node6', 'Node7', 'Node8', 'Node9', 'Scene0', 'Skin0', 'Skin0/InverseBindMatrices', 'Texture0'
+    let fox_handle: Handle<Scene> = asset_server.load("models/Fox.glb#Scene0");
+    /*
+    commands.spawn(SceneBundle {
+        scene: fox_handle,
+        transform: Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::new(1.0, 1.0, 1.0)),
+        ..default()
+    });
+    */
+    commands.spawn((
+        SceneRoot(fox_handle),
+        Transform::from_xyz(0.0, 0.0, -5.0)
+            .with_scale(Vec3::new(0.07, 0.07, 0.07)),
+        GlobalTransform::default(),
+    ));
+
 
     // create materials -------------------------------------------------------
     // load a texture and retrieve its aspect ratio
     //let texture_handle = asset_server.load("textures/array_texture.png");
     //let pyramid_handle = asset_server.load("textures/pyramid.png");
-    
   
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
