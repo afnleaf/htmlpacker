@@ -10,41 +10,16 @@ pack it up
 compress it with brotli
 then encode it in base64
 */
-
 use std::error::Error;
 use std::process::Command;
-use std::path::Path;
 use tokio::task;
-//use futures::future::join_all;
-//use std::fs;
-// crates
-// use tokio;
-// use reqwest;
 // modules
 use ::htmlpacker::encoder;
 use ::htmlpacker::htmlpacker;
 
-
-//wasm-pack build --target no-modules
+// build script for our wasm modules
 //.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")
 // this line is for when we add random
-/*
-fn build_wasm(dir: &str) -> Result<(), Box<dyn Error>> {
-    println!("Building WASM in {}", dir);
-    Command::new("wasm-pack")
-        .current_dir(dir)
-        //.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")  // Add this line
-        .args(&[
-            "build",
-            "--target",
-            "no-modules",
-        ])
-        .status()
-        .expect("Failed to compile WASM.");
-    println!("WASM compiled in {}.", dir);
-    Ok(())
-}
-*/
 async fn build_wasm(
     dir: &str
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -76,20 +51,6 @@ async fn build_wasm(
 async fn compile_wasm_modules() -> Result<(), Box<dyn Error>> {
     //build_wasm("../wasm_decoder").unwrap();
     //build_wasm("../wasm_modules").unwrap();
-   
-    /*
-
-    let builds = vec![
-        tokio::spawn(build_wasm("../wasm_decoder")),
-        tokio::spawn(build_wasm("../wasm_modules")),
-    ];
-    
-    // Wait for all builds to complete
-    for join_handle in join_all(builds).await {
-        // Unwrap the JoinHandle result, then propagate any error from the build
-        let _ = join_handle?;
-    }
-    */
     let decoder_build = build_wasm("../wasm_decoder");
     let modules_build = build_wasm("../wasm_modules");
     
@@ -145,11 +106,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let css_text = htmlpacker::get_css_string(css_urls).await?;
 
     // favicon processing
-    let icon_path = "../public/icon.svg";
-    let icon_svg = htmlpacker::get_local_script(Path::new(icon_path)).unwrap();
-    let icon_svg64 = encoder::encode_icon_svg_base64(icon_svg);
+    //let icon_path = "../public/icon.svg";
+    //let icon_svg = htmlpacker::get_local_script(Path::new(icon_path)).unwrap();
+    //let icon_svg64 = encoder::encode_icon_svg_base64(icon_svg);
+    let icon_svg64 = encoder::encode_base64("../public/icon.svg", "").unwrap();
+
     //println!("{:?}", icon_svg64);
-    let icons = vec![icon_svg64];
+    let icons = vec![icon_svg64.sl];
 
 
     // external scripts to fetch
@@ -168,26 +131,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "wasm_decoder");
 
     // base64 encoder
+    // encode_base64 is all you need now
     //let text64 = encoder::encode_text_base64("hello world!!!\nt. packer", "bin-text");
     //let png64 = encoder::encode_png_base64("../public/wizard.png", "bin-png")?;
     //let wasm64 = encoder::encode_wasm_base94("../wasm_modules/pkg/wasm_modules_bg.wasm", "bin-wasm")?;
     // this decoder is the reason we can do brotli decompress
-    let wasm_decoder64 = encoder::encode_wasm_base64(
+    let wasm_decoder64 = encoder::encode_base64(
         "../wasm_decoder/pkg/wasm_decoder_bg.wasm", 
         "bin-wasm-decoder")?;
-    let wasm_module64 = encoder::encode_wasm_base64_brotli(
+    let wasm_module64 = encoder::encode_brotli_base64(
         "../wasm_modules/pkg/wasm_modules_bg.wasm", 
         "bin-wasm")?;
-    //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
-    //println!("{:#?}", &text64);
-    //println!("{:#?}", &png64);
-    //let texture64 = encoder::encode_png_base64(
-    //    "../wasm_modules/assets/textures/pyramid.png", 
-    //    "bin-png")?;
-    
-    // model
-    //let model64 = encoder::encode_model_base64(
-    //    "../public/Fox.glb", "fox")?;
     
     let bin: Vec<encoder::Base> = vec![
         //text64,
@@ -213,48 +167,3 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/*
-fn build_wasm() {
-    Command::new("rustc")
-        .args(&[
-            "--target", "wasm32-unknown-unknown",
-            "-O", 
-            "--crate-type=cdylib", 
-            "./wasm_modules/src/lib.rs", 
-            "-o", "./public/wasm_test.wasm"
-        ])
-        .status()
-        .expect("Failed to compile WebAssembly");
-    println!("WebAssembly compiled successfully");
-}
-*/
-
-/*
-fn build_wasm() {
-    // Run cargo build in the wasm_modules directory with the correct target
-    let status = Command::new("cargo")
-        .current_dir("./wasm_modules")
-        .args(&[
-            "build",
-            "--target", "wasm32-unknown-unknown",
-            "--release"
-        ])
-        .status()
-        .expect("Failed to compile WebAssembly");
-    
-    if !status.success() {
-        panic!("WebAssembly compilation failed");
-    }
-    
-    // Make sure the public directory exists
-    //fs::create_dir_all("./public").expect("Failed to create public directory");
-    
-    // Copy the compiled wasm file to where the main project expects it
-    fs::copy(
-        "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
-        "./public/wasm_test.wasm"
-    ).expect("Failed to copy WebAssembly file");
-    
-    println!("WebAssembly compiled successfully");
-}
-*/

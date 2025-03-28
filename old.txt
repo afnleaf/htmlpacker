@@ -1,0 +1,198 @@
+
+/*
+fn build_wasm() {
+    Command::new("rustc")
+        .args(&[
+            "--target", "wasm32-unknown-unknown",
+            "-O", 
+            "--crate-type=cdylib", 
+            "./wasm_modules/src/lib.rs", 
+            "-o", "./public/wasm_test.wasm"
+        ])
+        .status()
+        .expect("Failed to compile WebAssembly");
+    println!("WebAssembly compiled successfully");
+}
+*/
+
+/*
+fn build_wasm() {
+    // Run cargo build in the wasm_modules directory with the correct target
+    let status = Command::new("cargo")
+        .current_dir("./wasm_modules")
+        .args(&[
+            "build",
+            "--target", "wasm32-unknown-unknown",
+            "--release"
+        ])
+        .status()
+        .expect("Failed to compile WebAssembly");
+    
+    if !status.success() {
+        panic!("WebAssembly compilation failed");
+    }
+    
+    // Make sure the public directory exists
+    //fs::create_dir_all("./public").expect("Failed to create public directory");
+    
+    // Copy the compiled wasm file to where the main project expects it
+    fs::copy(
+        "./wasm_modules/target/wasm32-unknown-unknown/release/wasm_modules.wasm",
+        "./public/wasm_test.wasm"
+    ).expect("Failed to copy WebAssembly file");
+    
+    println!("WebAssembly compiled successfully");
+}
+*/
+
+//wasm-pack build --target no-modules
+/*
+fn build_wasm(dir: &str) -> Result<(), Box<dyn Error>> {
+    println!("Building WASM in {}", dir);
+    Command::new("wasm-pack")
+        .current_dir(dir)
+        //.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")  // Add this line
+        .args(&[
+            "build",
+            "--target",
+            "no-modules",
+        ])
+        .status()
+        .expect("Failed to compile WASM.");
+    println!("WASM compiled in {}.", dir);
+    Ok(())
+}
+*/
+   
+    /*
+
+    let builds = vec![
+        tokio::spawn(build_wasm("../wasm_decoder")),
+        tokio::spawn(build_wasm("../wasm_modules")),
+    ];
+    
+    // Wait for all builds to complete
+    for join_handle in join_all(builds).await {
+        // Unwrap the JoinHandle result, then propagate any error from the build
+        let _ = join_handle?;
+    }
+    */
+    //let wasm64 = encoder::encode_wasm_base64("../public/wasm_test.wasm")?;
+    //println!("{:#?}", &text64);
+    //println!("{:#?}", &png64);
+    //let texture64 = encoder::encode_png_base64(
+    //    "../wasm_modules/assets/textures/pyramid.png", 
+    //    "bin-png")?;
+    
+    // model
+    //let model64 = encoder::encode_model_base64(
+    //    "../public/Fox.glb", "fox")?;
+
+// not needed? --------------------------------------
+
+pub fn encode_text_base64(
+    s: &str,
+    id: &str
+) -> Base {
+    let encoded = BASE64_STANDARD.encode(s.as_bytes());
+    //println!("text: {}", s);
+    //println!("b64:  {}", &encoded);
+    Base::new(
+        String::from(id),
+        encoded
+    )
+}
+
+pub fn encode_png_base64(
+    png_path: &str,
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    let buffer = get_file_bytes(png_path)?;
+    let encoded = BASE64_STANDARD.encode(&buffer);
+    //println!("png size: {}b", buffer.len());
+    //println!("b64:  {}\n size:  {}", &encoded, encoded.len());
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
+}
+
+pub fn encode_wasm_base64(
+    wasm_path: &str, 
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    let buffer = get_file_bytes(wasm_path)?;
+    let encoded = BASE64_STANDARD.encode(&buffer);
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
+}
+
+
+pub fn encode_wasm_base64_brotli(
+    wasm_path: &str, 
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    let buffer = get_file_bytes(wasm_path)?;
+    let compressed_buffer = encode_brotli(&buffer)?;
+    
+    // encode the compressed data as base64
+    let encoded = BASE64_STANDARD.encode(&compressed_buffer);
+    //let encoded = BASE64_STANDARD.encode(&buffer);
+    
+    // this might be cooked by we do it again
+    //let comp2 = encode_brotli(&encoded.as_bytes().to_vec())?;
+    //let encoded2 = BASE64_STANDARD.encode(&comp2);
+
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
+}
+
+// is this not the same as everything else?
+pub fn encode_model_base64(
+    model_path: &str,
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    let buffer = get_file_bytes(model_path)?;
+    //let compressed_buffer = encode_brotli(&buffer)?;
+    //let encoded = BASE64_STANDARD.encode(&compressed_buffer);
+    let encoded = BASE64_STANDARD.encode(&buffer);
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
+}
+
+/*
+pub fn encode_wasm_base94(
+    wasm_path: &str,
+    id: &str,
+) -> Result<Base, Box<dyn Error>> {
+    println!("test");
+    let mut file = File::open(wasm_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    println!("test2"); 
+    // ncode the compressed data as base94
+    let encoded = base94::encode(&buffer, 64);
+    println!("test3"); 
+    Ok(Base::new(
+        String::from(id),
+        encoded
+    ))
+}
+*/
+    //let wasm_bytes = std::fs::read(wasm_path).unwrap();
+    //base64::encode(&wasm_bytes)
+    /*
+    let mut file = File::open(wasm_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    */
+pub fn encode_icon_svg_base64(s: String) -> String {
+    BASE64_STANDARD.encode(s.as_bytes())
+}
+

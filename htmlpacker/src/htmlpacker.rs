@@ -66,8 +66,6 @@ fn favicons(icons: Vec<String>) -> Markup {
     }
 }
 
-
-
 // replace problematic characters
 // tokens to watch for:
 // &amp; -> &
