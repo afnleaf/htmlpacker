@@ -83,7 +83,8 @@ strip = true
 
 # not sure why wasm-opt O3 and O2 are not working
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["--optimize-level=3", "--shrink-level=2"]
+wasm-opt = ["--optimize-level=4", "--shrink-level=2"]
+#wasm-opt = ["-O4"]
 #wasm-opt = ["-Oz", "--optimize-level=3", "--shrink-level=2"]
 #wasm-opt = ["-O1"]
 #wasm-opt = false
