@@ -39,7 +39,7 @@ With these current implemented features, we have a solid backbone for the htmlpa
 ## todo
 - [x] fps counter
 - [x] encode textures
-- [ ] encode models/meshes/3d
+- [x] encode models/meshes/3d
 - [ ] simple asset loader for textures
 - asset loader for models
 - basis universal 
