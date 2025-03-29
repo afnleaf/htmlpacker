@@ -1,18 +1,6 @@
 use wasm_bindgen::prelude::*;
-//use web_sys::{Url, Blob};
-//use js_sys::{Uint8Array, Array};
-//use base64::prelude::*;
 use std::f32::consts::PI;
-//use gltf::Gltf;
-//use std::path::PathBuf;
-//use std::time::Duration;
 use bevy::{
-    //asset::{embedded_asset, io::AssetSourceId, AssetPath},
-    //asset::{
-        //io::embedded::{EmbeddedAssetRegistry},
-        //embedded_asset,
-    //},
-    //asset::{HandleId, AssetPath, Assets, LoadState},
     color::palettes::basic::SILVER,
     color::palettes::css::GOLD,
     render::{
@@ -20,28 +8,20 @@ use bevy::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
-    //ui::TextStyle,
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     image::{
         Image,
-        ImageType,
-        ImageSampler,
-        CompressedImageFormats
     },
     scene::{
-        //Scene,
         SceneRoot
     },
-    //utils::HashMap,
-    //gltf::{Gltf, GltfMesh, GltfNode, GltfPrimitive},
     prelude::*,
-    //window::WindowResized
 };
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 mod dom;
 
-// Entry point for WebAssembly
+// entry point for WASM
 #[wasm_bindgen(start)]
 pub fn start() {
     // panic hook = better error messages
@@ -58,11 +38,11 @@ pub fn start_bevy() {
     // initialize Bevy
     let mut app = App::new();
 
-    // this first
+    // embed all files in assets folder into the binary
+    // this replaces the default bevy asset plugin
     app.add_plugins(EmbeddedAssetPlugin {
         mode: PluginMode::ReplaceDefault,
     });
-
     // add default plugins
     app.add_plugins(
         DefaultPlugins.set(WindowPlugin {
@@ -77,17 +57,14 @@ pub fn start_bevy() {
             ..default()
         }),
     );
-
-
-    app    
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+    // add rest
+    app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 rotate_shapes,
                 text_update_system, text_color_system
-                //on_resize,
             ),
         )
         .run();
@@ -103,9 +80,9 @@ const SHAPES_X_EXTENT: f32 = 14.0;
 const EXTRUSION_X_EXTENT: f32 = 16.0;
 const Z_EXTENT: f32 = 5.0;
 
-const TEXTURE_DATA: &[u8] = include_bytes!("../assets/textures/pyramid.png");
+//const TEXTURE_DATA: &[u8] = include_bytes!("../assets/textures/pyramid.png");
+//const TEXTURE_DATA: &[u8] = include_bytes!("../assets/earth_l/texture1.png");
 //const FOX_MODEL: &[u8] = include_bytes!("../assets/models/Fox.glb");
-
 
 fn setup(
     mut commands: Commands,
@@ -114,54 +91,42 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // load base64 textures ---------------------------------------------------
-    // find the id
-    // window and document DOM
-    //let window = web_sys::window().unwrap();
-    //let document = window.document().unwrap();
-
-    // pyramid png
-    //let png_element = document.get_element_by_id("bin-png").unwrap();
-    //let png_text = png_element.text_content().unwrap();
-    //let png_bin_data: Vec<u8> = BASE64_STANDARD.decode(png_text).unwrap();
-    
-    let pyramid_image = Image::from_buffer(
-        //&png_bin_data,
-        TEXTURE_DATA,
-        ImageType::Extension("png"), // Or detect format from data
-        CompressedImageFormats::default(),
-        true,
-        ImageSampler::default(),
-        RenderAssetUsages::default(),
-    ).unwrap();
-    let pyramid_handle = asset_server.add(pyramid_image);
-
-    // fox model
     /*
-    let model_ele = document.get_element_by_id("fox").unwrap();
-    let model_text = model_ele.text_content().unwrap();
-    let model_data: Vec<u8> = BASE64_STANDARD.decode(model_text).unwrap();
+    so what we do next, assets, what do we need them for?
+    textures -> materials -> meshesh
+    models -> objects, characters
+
+    we have a bunch of textures we want to apply
+    we want to load them all at the same time in an array of 109 size
+let textures: Vec<Handle<Image>> = (1..=109)
+        .map(|i| asset_server.load(format!("textures/texture_{}.png", i)))
+        .collect();
+let material = materials.add(StandardMaterial {
+            base_color_texture: Some(textures[i].clone()),
+            ..default()
+        });
+    let mesh_handle = meshes.add(Sphere::default().mesh().uv(32, 18));
+    
+commands.spawn((
+            PbrBundle {
+                mesh: mesh_handle.clone(),
+                material,
+                transform: Transform::from_translation(position),
+                ..default()
+            },
+            Shape, // Your marker component
+        ));
     */
-    //let model_text = document
-    //    .get_element_by_id("fox").unwrap().text_content().unwrap();
-    //let model_data = BASE64_STANDARD.decode(&model_text).unwrap();
-    //web_sys::console::log_1(&format!("{}", model_text).into());
-   
+    
 
-    // FOX TESTING ------------------------------------------------------------
-    // Let's try creating a Scene directly from the bytes
-    //    "models/Fox.glb#Scene0",
 
+
+    // asset loading ----------------------------------------------------------
+    // pass asset_server down and do this in another function
+    let pyramid_handle = asset_server.load("textures/pyramid.png");
     // Load the Fox.glb scene
     // The file at 'models/Fox.glb' does not contain the labeled asset 'Scene1'; it contains the following 36 assets: 'Animation0', 'Animation1', 'Animation2', 'Material0', 'Mesh0', 'Mesh0/Primitive0', 'Node0', 'Node1', 'Node10', 'Node11', 'Node12', 'Node13', 'Node14', 'Node15', 'Node16', 'Node17', 'Node18', 'Node19', 'Node2', 'Node20', 'Node21', 'Node22', 'Node23', 'Node24', 'Node25', 'Node3', 'Node4', 'Node5', 'Node6', 'Node7', 'Node8', 'Node9', 'Scene0', 'Skin0', 'Skin0/InverseBindMatrices', 'Texture0'
     let fox_handle: Handle<Scene> = asset_server.load("models/Fox.glb#Scene0");
-    /*
-    commands.spawn(SceneBundle {
-        scene: fox_handle,
-        transform: Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::new(1.0, 1.0, 1.0)),
-        ..default()
-    });
-    */
     commands.spawn((
         SceneRoot(fox_handle),
         Transform::from_xyz(0.0, 0.0, -5.0)
@@ -169,17 +134,12 @@ fn setup(
         GlobalTransform::default(),
     ));
 
-
     // create materials -------------------------------------------------------
-    // load a texture and retrieve its aspect ratio
-    //let texture_handle = asset_server.load("textures/array_texture.png");
-    //let pyramid_handle = asset_server.load("textures/pyramid.png");
-  
+    // use asset server to add to materials
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
     });
-
 
     let p2 = materials.add(StandardMaterial {
         //base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
@@ -188,6 +148,7 @@ fn setup(
     });
     
     // create meshes ----------------------------------------------------------
+    // this can easily be another shape creating function
     let shapes = [
         meshes.add(Cuboid::default()),
         meshes.add(Tetrahedron::default()),
@@ -243,7 +204,65 @@ fn setup(
         ));
     }
     
+
+
+    // ground -----------------------------------------------------------------
+    // ground plane
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
+        MeshMaterial3d(materials.add(Color::from(SILVER))),
+    ));
+
     // lights -----------------------------------------------------------------
+    lights(&mut commands);
+
+    // camera ----------------------------------------------------------------- 
+    camera(&mut commands);
+
+    // UI ---------------------------------------------------------------------
+    ui(&mut commands);
+    // end of setup -----------------------------------------------------------
+    // how do we split this up while keeping the references intact?
+}
+
+
+fn rotate_shapes(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
+    for mut transform in &mut query {
+        transform.rotate_y(time.delta_secs() / 2.);
+    }
+}
+
+/// Creates a colorful test pattern
+fn uv_debug_texture() -> Image {
+    const TEXTURE_SIZE: usize = 8;
+
+    let mut palette: [u8; 32] = [
+        255, 102, 159, 255, 255, 159, 102, 255, 236, 255, 102, 255, 121, 255, 102, 255, 102, 255,
+        198, 255, 102, 198, 255, 255, 121, 102, 255, 255, 236, 102, 255, 255,
+    ];
+
+    let mut texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
+    for y in 0..TEXTURE_SIZE {
+        let offset = TEXTURE_SIZE * y * 4;
+        texture_data[offset..(offset + TEXTURE_SIZE * 4)].copy_from_slice(&palette);
+        palette.rotate_right(4);
+    }
+
+    Image::new_fill(
+        Extent3d {
+            width: TEXTURE_SIZE as u32,
+            height: TEXTURE_SIZE as u32,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &texture_data,
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    )
+}
+
+// systems --------------------------------------------------------------------
+fn lights(commands: &mut Commands) {
     commands.spawn((
         PointLight {
             shadows_enabled: true,
@@ -254,24 +273,16 @@ fn setup(
         },
         Transform::from_xyz(8.0, 16.0, 8.0),
     ));
+}
 
-
-    // ground -----------------------------------------------------------------
-    // ground plane
-    commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
-        MeshMaterial3d(materials.add(Color::from(SILVER))),
-    ));
-
-
-
-    // camera ----------------------------------------------------------------- 
+fn camera(commands: &mut Commands) {
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
     ));
+}
 
-    // UI ---------------------------------------------------------------------
+fn ui(commands: &mut Commands) {
     // Text with one section
     commands.spawn((
         // Accepts a `String` or any type that converts into a `String`, such as `&str`
@@ -325,48 +336,11 @@ fn setup(
             ..default()
         },
     ));
-    // end of setup -----------------------------------------------------------
-    // how do we split this up while keeping the references intact?
 }
+    
 
 
-fn rotate_shapes(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
-    for mut transform in &mut query {
-        transform.rotate_y(time.delta_secs() / 2.);
-    }
-}
-
-/// Creates a colorful test pattern
-fn uv_debug_texture() -> Image {
-    const TEXTURE_SIZE: usize = 8;
-
-    let mut palette: [u8; 32] = [
-        255, 102, 159, 255, 255, 159, 102, 255, 236, 255, 102, 255, 121, 255, 102, 255, 102, 255,
-        198, 255, 102, 198, 255, 255, 121, 102, 255, 255, 236, 102, 255, 255,
-    ];
-
-    let mut texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
-    for y in 0..TEXTURE_SIZE {
-        let offset = TEXTURE_SIZE * y * 4;
-        texture_data[offset..(offset + TEXTURE_SIZE * 4)].copy_from_slice(&palette);
-        palette.rotate_right(4);
-    }
-
-    Image::new_fill(
-        Extent3d {
-            width: TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        &texture_data,
-        TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD,
-    )
-}
-
-
-// FPS COUNTER -------------------------------------------------
+// FPS COUNTER ----------------------------------------------------------------
 // A unit struct to help identify the FPS UI component, since there may be many Text components
 #[derive(Component)]
 struct FpsText;

@@ -503,3 +503,66 @@ impl Plugin for EmbeddedAssetPlugin {
             //EmbeddedAssetPlugin::default()
             EmbeddedAssetPlugin
 */
+//use web_sys::{Url, Blob};
+//use js_sys::{Uint8Array, Array};
+//use base64::prelude::*;
+//use gltf::Gltf;
+//use std::path::PathBuf;
+//use std::time::Duration;
+    //asset::{embedded_asset, io::AssetSourceId, AssetPath},
+    //asset::{
+        //io::embedded::{EmbeddedAssetRegistry},
+        //embedded_asset,
+    //},
+    //asset::{HandleId, AssetPath, Assets, LoadState},
+    //ui::TextStyle,
+        //ImageType,
+        //ImageSampler,
+        //CompressedImageFormats
+    // load base64 textures ---------------------------------------------------
+    // find the id
+    // window and document DOM
+    //let window = web_sys::window().unwrap();
+    //let document = window.document().unwrap();
+
+    // pyramid png
+    //let png_element = document.get_element_by_id("bin-png").unwrap();
+    //let png_text = png_element.text_content().unwrap();
+    //let png_bin_data: Vec<u8> = BASE64_STANDARD.decode(png_text).unwrap();
+    /*
+    let pyramid_image = Image::from_buffer(
+        //&png_bin_data,
+        TEXTURE_DATA,
+        ImageType::Extension("png"), // Or detect format from data
+        CompressedImageFormats::default(),
+        true,
+        ImageSampler::default(),
+        RenderAssetUsages::default(),
+    ).unwrap();
+    */
+    //let pyramid_handle = asset_server.add(pyramid_image);
+    // fox model
+    /*
+    let model_ele = document.get_element_by_id("fox").unwrap();
+    let model_text = model_ele.text_content().unwrap();
+    let model_data: Vec<u8> = BASE64_STANDARD.decode(model_text).unwrap();
+    */
+    //let model_text = document
+    //    .get_element_by_id("fox").unwrap().text_content().unwrap();
+    //let model_data = BASE64_STANDARD.decode(&model_text).unwrap();
+    //web_sys::console::log_1(&format!("{}", model_text).into());
+   
+
+    // FOX TESTING ------------------------------------------------------------
+    // Let's try creating a Scene directly from the bytes
+    //    "models/Fox.glb#Scene0",
+    /*
+    commands.spawn(SceneBundle {
+        scene: fox_handle,
+        transform: Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::new(1.0, 1.0, 1.0)),
+        ..default()
+    });
+    */
+    // load a texture and retrieve its aspect ratio
+    //let texture_handle = asset_server.load("textures/array_texture.png");
+    //let pyramid_handle = asset_server.load("textures/pyramid.png");
