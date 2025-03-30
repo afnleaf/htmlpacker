@@ -84,6 +84,8 @@ const Z_EXTENT: f32 = 5.0;
 //const TEXTURE_DATA: &[u8] = include_bytes!("../assets/earth_l/texture1.png");
 //const FOX_MODEL: &[u8] = include_bytes!("../assets/models/Fox.glb");
 
+//fn load_map()
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -117,7 +119,51 @@ commands.spawn((
             Shape, // Your marker component
         ));
     */
+
+    let textures: Vec<Handle<Image>> = (1..=109)
+        .map(|i| asset_server.load(format!("earth_s/texture{i}.png")))
+        .collect();
+    let shap = meshes.add(Sphere::default().mesh().uv(32, 18));
+    let m1 = materials.add(StandardMaterial {
+        base_color_texture: Some(textures[0].clone()),
+        ..default()
+    });
+    let m2 = materials.add(StandardMaterial {
+        base_color_texture: Some(textures[108].clone()),
+        ..default()
+    });
+
+    commands.spawn((
+        Mesh3d(shap.clone()),
+        MeshMaterial3d(m1.clone()),
+        Transform::from_xyz(-3.0, 3.0, 5.0)
+            .with_scale(Vec3::new(2.0, 2.0, 2.0))
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        Shape,
+    ));
     
+    commands.spawn((
+        Mesh3d(shap.clone()),
+        MeshMaterial3d(m2.clone()),
+        Transform::from_xyz(3.0, 3.0, 5.0)
+            .with_scale(Vec3::new(2.0, 2.0, 2.0))
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        Shape,
+    ));
+    /*
+    for i in 1..109 {
+        let material = materials.add(StandardMaterial {
+            base_color_texture: Some(textures[i].clone()),
+            ..default()
+        });
+        commands.spawn((
+            Mesh3d(shap.clone()),
+            MeshMaterial3d(material.clone()),
+            Transform::from_xyz(-5.0+(i as f32), 0.0, -5.0).with_scale(Vec3::new(0.07, 0.07, 0.07)).with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            Shape,
+        ));
+    }
+    */
 
 
 
