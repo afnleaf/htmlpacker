@@ -65,6 +65,7 @@ pub fn start_bevy() {
             (
                 rotate_shapes,
                 text_update_system, text_color_system
+                //change_textures,
             ),
         )
         .run();
@@ -132,6 +133,18 @@ commands.spawn((
         base_color_texture: Some(textures[108].clone()),
         ..default()
     });
+    let pyramid_handle = asset_server.load("textures/pyramid.png");
+    let p2 = materials.add(StandardMaterial {
+        //base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
+        base_color_texture: Some(pyramid_handle.clone()),
+        ..default()
+    });
+    spawn_beam_to_origin(
+        &mut commands,
+        &mut meshes,
+        p2.clone(), // Use your existing material
+        Vec3::new(5.0, 3.0, -2.0)
+    );
 
     commands.spawn((
         Mesh3d(shap.clone()),
@@ -169,7 +182,7 @@ commands.spawn((
 
     // asset loading ----------------------------------------------------------
     // pass asset_server down and do this in another function
-    let pyramid_handle = asset_server.load("textures/pyramid.png");
+    
     // Load the Fox.glb scene
     // The file at 'models/Fox.glb' does not contain the labeled asset 'Scene1'; it contains the following 36 assets: 'Animation0', 'Animation1', 'Animation2', 'Material0', 'Mesh0', 'Mesh0/Primitive0', 'Node0', 'Node1', 'Node10', 'Node11', 'Node12', 'Node13', 'Node14', 'Node15', 'Node16', 'Node17', 'Node18', 'Node19', 'Node2', 'Node20', 'Node21', 'Node22', 'Node23', 'Node24', 'Node25', 'Node3', 'Node4', 'Node5', 'Node6', 'Node7', 'Node8', 'Node9', 'Scene0', 'Skin0', 'Skin0/InverseBindMatrices', 'Texture0'
     let fox_handle: Handle<Scene> = asset_server.load("models/Fox.glb#Scene0");
@@ -187,11 +200,7 @@ commands.spawn((
         ..default()
     });
 
-    let p2 = materials.add(StandardMaterial {
-        //base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
-        base_color_texture: Some(pyramid_handle.clone()),
-        ..default()
-    });
+
     
     // create meshes ----------------------------------------------------------
     // this can easily be another shape creating function
@@ -249,8 +258,6 @@ commands.spawn((
             Shape,
         ));
     }
-    
-
 
     // ground -----------------------------------------------------------------
     // ground plane
@@ -271,7 +278,7 @@ commands.spawn((
     // how do we split this up while keeping the references intact?
 }
 
-
+//
 fn rotate_shapes(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_secs() / 2.);
@@ -308,6 +315,39 @@ fn uv_debug_texture() -> Image {
 }
 
 // systems --------------------------------------------------------------------
+fn spawn_beam_to_origin(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    material: Handle<StandardMaterial>,
+    target_position: Vec3
+) {
+    // Calculate the length of the beam
+    let length = target_position.length();
+    
+    if length > 0.0 {
+        // Create a 1x1 rectangular extrusion
+        let mesh_handle = meshes.add(Extrusion::new(Rectangle::new(0.1, 0.1), length));
+        
+        // Calculate midpoint for positioning
+        let midpoint = target_position / 2.0;
+        
+        // Calculate rotation to align with the target direction
+        // Default extrusion is along the z-axis, so rotate from z to target
+        let direction = target_position.normalize();
+        let rotation = Quat::from_rotation_arc(Vec3::Z, direction);
+        
+        // Spawn the entity
+        commands.spawn((
+            Mesh3d(mesh_handle),
+            MeshMaterial3d(material.clone()),
+            Transform::from_translation(midpoint)
+                   .with_rotation(rotation),
+            //Shape,
+        ));
+    }
+}
+
+
 fn lights(commands: &mut Commands) {
     commands.spawn((
         PointLight {

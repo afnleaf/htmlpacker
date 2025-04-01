@@ -55,5 +55,5 @@ wasm: `wasm-pack build --target no-modules`
 ## notes
 what computer you compile on will leak bevy crate stuff, how to prevent?
 
-embedding textures at compile time within the rust binary does not work for a wasm target. moving to base64 + compression + decoder + custom asset loader.
+
 

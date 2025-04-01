@@ -11,84 +11,29 @@ compress it with brotli
 then encode it in base64
 */
 use std::error::Error;
-use std::process::Command;
-use tokio::task;
 // modules
 use ::htmlpacker::encoder;
 use ::htmlpacker::htmlpacker;
-
-// build script for our wasm modules
-//.env("RUSTFLAGS", "--cfg getrandom_backend=\"wasm_js\"")
-// this line is for when we add random
-async fn build_wasm(
-    dir: &str
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    println!("Building WASM in {}", dir);
-
-    // spawn command in blocking task
-    let dir_owned = dir.to_string();
-    let status = task::spawn_blocking(move || {
-        Command::new("wasm-pack")
-            .current_dir(&dir_owned)
-            .args(&[
-                "build",
-                "--target",
-                "no-modules",
-            ])
-            .status()
-    })
-    .await?;
-
-    if !status?.success() {
-        println!("HELO THERE!");
-        return Err(format!("Failed to compiled WASM in {}", dir).into());
-    }
-
-    println!("WASM compiled in {}.", dir);
-    Ok(())
-}
-
-async fn compile_wasm_modules() -> Result<(), Box<dyn Error>> {
-    //build_wasm("../wasm_decoder").unwrap();
-    //build_wasm("../wasm_modules").unwrap();
-    let decoder_build = build_wasm("../wasm_decoder");
-    let modules_build = build_wasm("../wasm_modules");
-    
-    // Join both futures and get their results
-    let (decoder_result, modules_result) = tokio::join!(decoder_build, modules_build);
-    
-    // Check results - exit with error code if any build failed
-    if let Err(err) = decoder_result {
-        eprintln!("Decoder build failed: {}", err);
-        std::process::exit(1);
-    }
-    
-    if let Err(err) = modules_result {
-        eprintln!("Modules build failed: {}", err);
-        std::process::exit(1);
-    }
-    
-    // If we get here, both builds succeeded
-    println!("All WASM builds completed successfully!");
-    Ok(())
-}
+use ::htmlpacker::wasmbuilder;
 
 
 // async !!
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
-    compile_wasm_modules().await?;
+    wasmbuilder::compile_wasm_modules().await?;
 
-    // metadata
+    // there must be a way to refactor this build process.
+    // configuration of build file
+    //
+    // obviously handle the wasm-pack first
     let css_urls = vec![
         //"https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
     ];
 
-    // doesnt work need to create my own non module version?
+    // if you want to use javascript libraries,
+    // do we need to implement modules tag mode?
     let external_scripts_list = vec![
-        //"https://cdn.jsdelivr.net/npm/brotli-compress@1.3.3/index.min.js",
-        //"https://cdnjs.cloudflare.com/ajax/libs/brotli/1.3.2/decode.min.js",
         //"https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js",
         //"https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TrackballControls.min.js"
     ];
@@ -97,9 +42,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "../wasm_decoder/pkg/wasm_decoder.js",
         "../wasm_modules/pkg/wasm_modules.js", // bindgen
         "../public/decoder.js", // decode wasm from base64
+        "../public/app2.js", // app logic
         //"../public/app.js", // app logic
         //"../public/script.js", // test script
-        "../public/app2.js",
     ];
 
     // external css
@@ -113,7 +58,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     //println!("{:?}", icon_svg64);
     let icons = vec![icon_svg64.sl];
-
 
     // external scripts to fetch
     let external_scripts_text = htmlpacker::get_external_scripts_text(
