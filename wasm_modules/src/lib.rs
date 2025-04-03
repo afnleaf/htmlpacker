@@ -1,3 +1,4 @@
+#![feature(trivial_bounds)]
 use wasm_bindgen::prelude::*;
 use std::f32::consts::PI;
 use bevy::{
@@ -6,7 +7,7 @@ use bevy::{
     render::{
         mesh::*,
         render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
+        render_resource::{Extent3d, TextureDimension, TextureFormat, ShaderType},
     },
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     image::{
@@ -60,18 +61,134 @@ pub fn start_bevy() {
     // add rest
     app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
+        //.add_systems(PostStartup, setup2)
         .add_systems(
             Update,
             (
                 rotate_shapes,
-                text_update_system, text_color_system
+                text_update_system, text_color_system,
+                //update_elevation_instances
                 //change_textures,
             ),
         )
         .run();
 }
 
+// need to fix
+pub fn brotli_decompress(buf: Box<[u8]>) -> Result<Box<[u8]>, JsValue> {
+    let mut out = Vec::<u8>::new();
+    match brotli::BrotliDecompress(&mut buf.as_ref(), &mut out) {
+        Ok(_) => (),
+        Err(e) => return Err(JsValue::from_str(&format!(
+            "Brotli decompress failed: {:?}", e
+        ))),
+    }
+    Ok(out.into_boxed_slice())
+}
 
+const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test.bin.br");
+
+#[derive(Resource)]
+struct ElevationData {
+    elevation: Vec<i16>,
+    height: usize, // latitude
+    width: usize, // longitude
+}
+
+// bevy vec struct?
+
+fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
+    let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
+
+    for i in 0..e.height { //latitude
+        for j in 0..e.width { //longitude
+            //println!("Elevation at {},{}: {}", 
+            //    i, j, e.elevation[i * e.width + j]);
+
+            // calculate 3d position from latitude and longitude
+            use std::f64::consts::PI;
+            //let a = x.tan();
+            //let b = x.sin() / x.cos();
+            //let r = 6378 // radius in km
+            let r = 2.0;
+            let a = PI / 180.0;
+            let r_la = i as f64 * a;
+            let r_lo = j as f64 * a;
+
+            let x = (r * r_la.cos() * r_lo.cos()) as f32;
+            let y = (r * r_la.cos() * r_lo.sin()) as f32;
+            let z = (r * r_la.sin()) as f32;
+
+            vertices.push(Vec3::new(x, y, z));
+            //println!("x{} y{} z{}", x, y, z);
+        }
+    }
+
+    vertices
+}
+
+#[derive(Component, Default)]
+struct EarthInstanceData {
+    instances: Vec<InstanceData>
+}
+
+#[derive(Clone, Copy, ShaderType)]
+struct InstanceData {
+    position: Vec3,
+    scale: Vec3,
+    rotation: Mat4,
+}
+
+fn setup_earth_elevation_points(
+    vertices: &[Vec3],
+    elevation: &[i16],
+    height: usize,
+    width: usize,
+) -> Vec<InstanceData> {
+    let mut instances = Vec::with_capacity(height * width);
+    
+    for i in 0..height {
+        for j in 0..width {
+            let n = i * width + j;
+            let vertex_pos = vertices[n];
+            let elevation_value = elevation[n] as f32;
+            let elevation_scale = (elevation_value / 8000.0).max(0.01) * 0.5;
+            
+            // Convert Quat to Mat4 for shader compatibility
+            let direction = vertex_pos.normalize();
+            let rotation_quat = Quat::from_rotation_arc(Vec3::Z, direction);
+            let rotation_mat = Mat4::from_quat(rotation_quat);
+            
+            instances.push(InstanceData {
+                position: vertex_pos,
+                scale: Vec3::new(0.05, 0.05, elevation_scale),
+                rotation: rotation_mat,
+            });
+        }
+    }
+    
+    instances
+}
+
+// And update your system to:
+/*
+fn update_elevation_instances(
+    // Use specific query type - no generics
+    mut commands: Commands,
+    query: Query<(Entity, &EarthInstanceData), Changed<EarthInstanceData>>,
+    mut meshes: ResMut<Assets<Mesh>>, 
+) {
+    for (entity, instance_data) in &query {
+        // For Bevy 0.15, we need a different approach
+        // You might need to extract the instance data and send it to the GPU
+        // This is a simplified version
+        let mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD));
+        
+        // Add instance data
+        commands.entity(entity).insert(mesh_handle);
+    }
+}
+*/
 
 // A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component)]
@@ -80,12 +197,6 @@ struct Shape;
 const SHAPES_X_EXTENT: f32 = 14.0;
 const EXTRUSION_X_EXTENT: f32 = 16.0;
 const Z_EXTENT: f32 = 5.0;
-
-//const TEXTURE_DATA: &[u8] = include_bytes!("../assets/textures/pyramid.png");
-//const TEXTURE_DATA: &[u8] = include_bytes!("../assets/earth_l/texture1.png");
-//const FOX_MODEL: &[u8] = include_bytes!("../assets/models/Fox.glb");
-
-//fn load_map()
 
 fn setup(
     mut commands: Commands,
@@ -120,8 +231,31 @@ commands.spawn((
             Shape, // Your marker component
         ));
     */
+    let mut decompressor = 
+        brotli::Decompressor::new(
+            std::io::Cursor::new(ELEVATION_DATA_BYTES), 4096);
+    let mut decompressed = Vec::new();
+    std::io::Read::read_to_end(&mut decompressor, &mut decompressed)
+        .expect("Failed to decompress data");
+    //decompressor.read_to_end(&mut decompressed)
+    //println!("{:?}", decompressed);
 
-    let textures: Vec<Handle<Image>> = (1..=109)
+    let mut elevation = Vec::with_capacity(decompressed.len() / 2);
+    for c in decompressed.chunks_exact(2) {
+        elevation.push(
+            i16::from_le_bytes([c[0], c[1]]));
+    }
+    let e = ElevationData {
+        elevation,
+        height: 181,
+        width: 361,
+    };
+    //commands.insert_resource(&e);
+    //commands.apply(&mut world);
+
+    let vertices = calculate_vertices(&e);
+
+    let textures: Vec<Handle<Image>> = (1..=5)
         .map(|i| asset_server.load(format!("earth_s/texture{i}.png")))
         .collect();
     let shap = meshes.add(Sphere::default().mesh().uv(32, 18));
@@ -130,7 +264,7 @@ commands.spawn((
         ..default()
     });
     let m2 = materials.add(StandardMaterial {
-        base_color_texture: Some(textures[108].clone()),
+        base_color_texture: Some(textures[4].clone()),
         ..default()
     });
     let pyramid_handle = asset_server.load("textures/pyramid.png");
@@ -139,13 +273,87 @@ commands.spawn((
         base_color_texture: Some(pyramid_handle.clone()),
         ..default()
     });
+
+    let material = materials.add(StandardMaterial {
+        base_color_texture: Some(pyramid_handle.clone()),
+        ..default()
+    });
+    /*
+    let mut instances = Vec::with_capacity(e.height * e.width);
+    for i in 0..e.height {
+        for j in 0..e.width {
+            let n = i * e.width + j;
+            let vertex_pos = vertices[n];
+            let elevation_value = e.elevation[n] as f32;
+            let elevation_scale = (elevation_value / 8000.0).max(0.01) * 0.5;               instances.push(InstanceData {
+                position: vertex_pos,
+                scale: Vec3::new(0.05, 0.05, elevation_scale),
+                rotation: Quat::from_rotation_arc(Vec3::Z, 
+                    vertex_pos.normalize()),
+            });
+        }
+    }
+    */
+
+    let prism_mesh = meshes.add(Cuboid::new(0.1, 0.1, 1.0));
+    // In your setup function, change to:
+    //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
+    let lat_step = 2;
+    let lon_step = 2;
+    for i in (0..e.height).step_by(lat_step) {
+        for j in (0..e.width).step_by(lon_step) {
+            let n = i * e.width + j;
+            let vertex_pos = vertices[n];
+            
+            // Skip if data is missing or is water (approximated as very low elevation)
+            if n >= e.elevation.len() || e.elevation[n] < -100 {
+                continue;
+            }
+            
+            let elevation_value = e.elevation[n] as f32;
+            //let elevation_scale = (elevation_value / 8000.0).max(1.0) * 0.5;
+            
+            // Calculate direction and rotation
+            let direction = vertex_pos.normalize();
+            let rotation = Quat::from_rotation_arc(Vec3::Z, direction);
+            
+            // Spawn entity with transform
+            commands.spawn((
+                Mesh3d(prism_mesh.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(vertex_pos)
+                    .with_rotation(rotation)
+                    .with_scale(Vec3::new(1.0, 1.0, 1.0)),
+            ));
+        }
+    }
+    
+    /*
+    // Spawn a single entity with the instance data component
+    commands.spawn((
+        Mesh3d(prism_mesh),
+        MeshMaterial3d(material),
+        EarthInstanceData { instances },
+        Transform::default(),
+    ));
+    */
+
+    /*
+    commands.spawn((
+        Mesh3d(prism_mesh),
+        MeshMaterial3d(material),
+        EarthElevationPoints { instances },
+        Transform::default(),
+    ));
+    */
+    /* 
     spawn_beam_to_origin(
         &mut commands,
         &mut meshes,
         p2.clone(), // Use your existing material
         Vec3::new(5.0, 3.0, -2.0)
     );
-
+    */
     commands.spawn((
         Mesh3d(shap.clone()),
         MeshMaterial3d(m1.clone()),
@@ -261,10 +469,12 @@ commands.spawn((
 
     // ground -----------------------------------------------------------------
     // ground plane
+    /*
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
     ));
+    */
 
     // lights -----------------------------------------------------------------
     lights(&mut commands);
