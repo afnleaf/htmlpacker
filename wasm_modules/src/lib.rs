@@ -21,9 +21,9 @@ use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 mod dom;
 mod tools;
 mod scene;
-//mod camera;
 mod earth;
 mod trackball_camera;
+//mod camera;
 
 // entry point for WASM
 #[wasm_bindgen(start)]
@@ -140,6 +140,17 @@ fn ground_plane(
 
 
 fn lights(commands: &mut Commands) {
+    commands.spawn((
+        PointLight {
+            shadows_enabled: true,
+            intensity: 10_000_000.,
+            range: 100.0,
+            shadow_depth_bias: 0.2,
+            ..default()
+        },
+        Transform::from_xyz(-16.0, 0.0, -16.0),
+    ));
+    
     commands.spawn((
         PointLight {
             shadows_enabled: true,

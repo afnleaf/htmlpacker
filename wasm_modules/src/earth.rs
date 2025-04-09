@@ -9,7 +9,7 @@ use bevy::{
     //scene::{SceneRoot},
     prelude::*,
 };
-use std::f32::consts::{FRAC_PI_2, PI };
+//use std::f32::consts::{FRAC_PI_2, PI };
 
 const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test.bin.br");
 
@@ -52,13 +52,11 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
     let r = 2.0_f64; // sphere radius
     
     for i in 0..e.height {
-    //for i in -90..90 {
         // Map i from [0, height-1] to [-90, 90] degrees (latitude)
         let lat_deg = -90.0 + (i as f64 * 180.0 / (e.height as f64 - 1.0));
         let lat_rad = lat_deg * std::f64::consts::PI / 180.0;
         
         for j in 0..e.width {
-        //for j in -180..180 {
             // Map j from [0, width-1] to [-180, 180] degrees (longitude)
             let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
             let lon_rad = lon_deg * std::f64::consts::PI / 180.0;
@@ -142,16 +140,16 @@ pub fn prism_earth(
     });
 
 
-    let prism_mesh = meshes.add(Cuboid::new(0.1, 0.1, 0.2));
+    let prism_mesh = meshes.add(Cuboid::new(0.05, 0.05, 0.2));
     // In your setup function, change to:
     //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
     // actual_range: Ok(Doubles([-9000.0, 6000.0]))
     let max = 6000.0;
     let min = -9000.0;
-    let e_scale_f = 0.2;
+    let e_scale_f = 0.5;
 
-    let lat_step = 2;
-    let lon_step = 2;
+    let lat_step = 1;
+    let lon_step = 1;
     for i in (0..e.height).step_by(lat_step) {
         for j in (0..e.width).step_by(lon_step) {
             let n = i * e.width + j;
