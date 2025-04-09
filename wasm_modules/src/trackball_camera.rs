@@ -54,11 +54,11 @@ impl Default for TrackballState {
     fn default() -> Self {
         TrackballState {
             target: Vec3::ZERO,
-            position: Vec3::new(0.0, 0.0, 5.0),
+            position: Vec3::new(0.0, 0.0, 3.0),
             up: Vec3::Y,
             rotation_quat: Quat::IDENTITY,
             distance: 5.0,
-            last_position: Vec3::new(0.0, 0.0, 5.0),
+            last_position: Vec3::new(0.0, 0.0, 3.0),
             moving: false,
             velocity: Vec3::ZERO,
             rotation_velocity: Quat::IDENTITY,
@@ -71,7 +71,7 @@ impl Default for TrackballSettings {
         TrackballSettings {
             rotate_speed: 1.0,
             zoom_speed: 1.2,
-            pan_speed: 0.3,
+            pan_speed: 0.01,
             
             static_moving: false,
             damping_factor: 0.2,
@@ -137,20 +137,6 @@ pub fn trackball_camera_system(
         let pan_active = mouse_button.pressed(settings.pan_button) || 
                         kbd.pressed(settings.keys[2]);
         
-        // Check for newly pressed buttons to provide immediate response
-        let rotate_just_pressed = mouse_button.just_pressed(settings.rotate_button) || 
-                                 kbd.just_pressed(settings.keys[0]);
-        let zoom_just_pressed = mouse_button.just_pressed(settings.zoom_button) || 
-                               kbd.just_pressed(settings.keys[1]);
-        let pan_just_pressed = mouse_button.just_pressed(settings.pan_button) || 
-                              kbd.just_pressed(settings.keys[2]);
-        
-        // Reset velocities immediately when input starts to ensure immediate response
-        if rotate_just_pressed || zoom_just_pressed || pan_just_pressed {
-            state.velocity = Vec3::ZERO;
-            state.rotation_velocity = Quat::IDENTITY;
-        }
-        
         // Set moving flag if any control is active
         state.moving = rotate_active || zoom_active || pan_active;
         
@@ -161,16 +147,15 @@ pub fn trackball_camera_system(
             
             // Create a quaternion for this rotation
             // For a true trackball, we need to map 2D mouse motion to 3D rotation
-            let axis = Vec3::new(-rot_delta.y, rot_delta.x, 0.0).normalize();
+            let axis = Vec3::new(-rot_delta.y, -rot_delta.x, 0.0).normalize();
             let angle = rot_delta.length();
             let delta_quat = Quat::from_axis_angle(axis, angle);
             
-            // Apply rotation immediately for responsiveness
-            let current_rotation = state.rotation_quat;
-            state.rotation_quat = delta_quat * current_rotation;
-            
-            if !settings.static_moving {
-                // Store in velocity only for continued motion after release
+            if settings.static_moving {
+                // Direct rotation
+                state.rotation_quat = delta_quat * state.rotation_quat;
+            } else {
+                // Add to rotation velocity for damping
                 state.rotation_velocity = delta_quat;
             }
         }
@@ -205,12 +190,12 @@ pub fn trackball_camera_system(
             // Movement in camera's local space
             let pan_delta = (right * -mouse_delta.x + up * mouse_delta.y) * pan_scale;
             
-            // Apply pan immediately for responsiveness
-            state.target += pan_delta;
-            
-            if !settings.static_moving {
-                // Store in velocity only for continued motion after release
-                state.velocity += pan_delta * 0.2; // Reduced to prevent excessive inertia
+            if settings.static_moving {
+                // Direct movement
+                state.target += pan_delta;
+            } else {
+                // Add to velocity for damping
+                state.velocity += pan_delta;
             }
         }
         

@@ -9,6 +9,7 @@ use bevy::{
     //scene::{SceneRoot},
     prelude::*,
 };
+use std::f32::consts::{FRAC_PI_2, PI };
 
 const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test.bin.br");
 
@@ -48,14 +49,16 @@ fn parse_elevation() -> ElevationData {
 
 fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
     let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
-    let r = 2.0; // sphere radius
+    let r = 2.0_f64; // sphere radius
     
     for i in 0..e.height {
+    //for i in -90..90 {
         // Map i from [0, height-1] to [-90, 90] degrees (latitude)
         let lat_deg = -90.0 + (i as f64 * 180.0 / (e.height as f64 - 1.0));
         let lat_rad = lat_deg * std::f64::consts::PI / 180.0;
         
         for j in 0..e.width {
+        //for j in -180..180 {
             // Map j from [0, width-1] to [-180, 180] degrees (longitude)
             let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
             let lon_rad = lon_deg * std::f64::consts::PI / 180.0;
@@ -64,6 +67,8 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
             let x = (r * lat_rad.cos() * lon_rad.cos()) as f32;
             let y = (r * lat_rad.cos() * lon_rad.sin()) as f32;
             let z = (r * lat_rad.sin()) as f32;
+
+
             
             // swap z and y cause bevy has y as up/down
             vertices.push(Vec3::new(x, y, z));
@@ -72,6 +77,8 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
     
     vertices
 }
+
+
 /*
 pub fn prism_earth(
     mut commands: Commands,
@@ -135,16 +142,16 @@ pub fn prism_earth(
     });
 
 
-    let prism_mesh = meshes.add(Cuboid::new(0.05, 0.05, 0.2));
+    let prism_mesh = meshes.add(Cuboid::new(0.1, 0.1, 0.2));
     // In your setup function, change to:
     //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
     // actual_range: Ok(Doubles([-9000.0, 6000.0]))
     let max = 6000.0;
     let min = -9000.0;
-    let e_scale_f = 0.3;
+    let e_scale_f = 0.2;
 
-    let lat_step = 1;
-    let lon_step = 1;
+    let lat_step = 2;
+    let lon_step = 2;
     for i in (0..e.height).step_by(lat_step) {
         for j in (0..e.width).step_by(lon_step) {
             let n = i * e.width + j;
@@ -175,16 +182,30 @@ pub fn prism_earth(
                 });
             
             // Calculate direction and rotation
+            /*
             let direction = vertex_pos.normalize();
-            let rotation = Quat::from_rotation_arc(Vec3::Z, direction);
+            let direction_rotation = Quat::from_rotation_arc(Vec3::Z, direction);
+            let x_rotation = Quat::from_rotation_x(std::f32::consts::FRAC_PI_2);
+            let rotation = direction_rotation * x_rotation;
+            */
+            // Create rotation quaternion for π/2 around x-axis
+            let rotation_x = Quat::from_rotation_x(std::f32::consts::FRAC_PI_2);
+            let rotation_y = Quat::from_rotation_y(std::f32::consts::PI);
+            let combined_rotation = rotation_x * rotation_y;
             
+            // Apply rotation to the scaled_position vector itself
+            let rotated_position = combined_rotation.mul_vec3(scaled_position);
+            
+            // Then calculate direction using the rotated position
+            let direction = rotated_position.normalize();
+            let orientation = Quat::from_rotation_arc(Vec3::Z, direction);            
             // Spawn entity with transform
             commands.spawn((
                 Mesh3d(prism_mesh.clone()),
                 MeshMaterial3d(material.clone()),
                 //Transform::from_translation(vertex_pos)
-                Transform::from_translation(scaled_position)
-                    .with_rotation(rotation)
+                Transform::from_translation(rotated_position)
+                    .with_rotation(orientation)
                     //.with_scale(Vec3::new(es, es, es)),
             ));
         }
@@ -192,7 +213,69 @@ pub fn prism_earth(
 
 }
 
+/*
+fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
+    let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
+    let r = 2.0_f64; // Use f64 for intermediate calculations for precision
 
+    // Ensure dimensions are not zero to avoid division by zero
+    if e.height <= 1 || e.width == 0 { // width can be 1 for a line, but height needs > 1 for lat range
+        return vertices;
+    }
+
+    for i in 0..e.height {
+        // Map i from [0, height-1] to [-90, 90] degrees (latitude)
+        // Corrected mapping: ensures endpoints map correctly. Use f64 for division.
+        let lat_deg = -90.0 + (i as f64 * 180.0 / (e.height as f64 - 1.0));
+        let lat_rad = lat_deg.to_radians(); // Use inherent method
+
+        // The radius projected onto the equatorial (XZ in Bevy) plane depends on latitude
+        let radius_at_lat = r * lat_rad.cos();
+
+        // Bevy's Y coordinate depends only on latitude
+        let bevy_y = r * lat_rad.sin();
+
+        for j in 0..e.width {
+             // Map j from [0, width-1] to [-180, 180] degrees (longitude)
+             // If width represents a full circle (e.g., 360 points), the last point overlaps the first.
+             // A common approach is to map to [0, 360) or [-180, 180).
+             // Using `e.width` in the denominator makes the step `360.0 / e.width`.
+             // Example: if width = 360, j goes 0..359 -> lon_deg = -180 + j * 1.0
+             // Example: if width = 361, j goes 0..360 -> lon_deg = -180 + j * (360/360) = -180 + j
+             // Mapping to [-180, 180] inclusive:
+             let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
+            // Alternative mapping to [0, 360) often used with textures/wrapping:
+            // let lon_deg = j as f64 * 360.0 / e.width as f64;
+
+            let lon_rad = lon_deg.to_radians(); // Use inherent method
+
+            // Bevy's X and Z coordinates depend on longitude and the radius at this latitude
+            let bevy_x = radius_at_lat * lon_rad.cos();
+            let bevy_z = radius_at_lat * lon_rad.sin(); // Standard Y becomes Bevy's Z
+
+            // --- Optional: Incorporate Elevation ---
+            // If you want to use the elevation data:
+            // let elevation_index = i * e.width + j;
+            // let current_elevation = e.elevation.get(elevation_index).copied().unwrap_or(0.0);
+            // let scale_factor = 0.01; // Adjust how much elevation affects the radius
+            // let adjusted_r = r + current_elevation * scale_factor;
+            // // Recalculate x, y, z using adjusted_r instead of r
+            // let radius_at_lat = adjusted_r * lat_rad.cos();
+            // let bevy_y = adjusted_r * lat_rad.sin();
+            // let bevy_x = radius_at_lat * lon_rad.cos();
+            // let bevy_z = radius_at_lat * lon_rad.sin();
+            // --- End Optional Elevation ---
+
+
+            // Push the vertex with coordinates correctly mapped for Bevy (Y-up)
+            // Cast to f32 at the end
+            vertices.push(Vec3::new(bevy_x as f32, bevy_y as f32, bevy_z as f32));
+        }
+    }
+
+    vertices
+}
+*/
 
 
     /*

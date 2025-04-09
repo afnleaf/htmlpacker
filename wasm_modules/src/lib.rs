@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_mut)]
 
 #![feature(trivial_bounds)]
 use wasm_bindgen::prelude::*;
@@ -20,7 +21,7 @@ use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 mod dom;
 mod tools;
 mod scene;
-mod camera;
+//mod camera;
 mod earth;
 mod trackball_camera;
 
@@ -75,7 +76,7 @@ pub fn start_bevy() {
         .add_systems(
             Update,
             (
-                scene::rotate_shapes,
+                //scene::rotate_shapes,
                 tools::text_update_system, tools::text_color_system,
                 trackball_camera::trackball_camera_system
                     .run_if(any_with_component::<trackball_camera::TrackballState>),
@@ -99,9 +100,9 @@ fn setup(
 */
 fn setup(
     mut commands: Commands,
-    meshes: ResMut<Assets<Mesh>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     images: ResMut<Assets<Image>>,
-    materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
 
@@ -147,7 +148,7 @@ fn lights(commands: &mut Commands) {
             shadow_depth_bias: 0.2,
             ..default()
         },
-        Transform::from_xyz(8.0, 16.0, 8.0),
+        Transform::from_xyz(16.0, 0.0, 16.0),
     ));
 }
 
