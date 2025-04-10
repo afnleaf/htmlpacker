@@ -74,7 +74,8 @@ pub fn start_bevy() {
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup,(
                 setup,
-                earth::prism_earth,
+                //earth::prism_earth,
+                earth::earth_terrain_mesh,
                 //camera::spawn_camera,
                 trackball_camera::spawn_trackball_camera
         ))
@@ -83,7 +84,7 @@ pub fn start_bevy() {
             Update,
             (
                 //scene::rotate_shapes,
-                tools::text_update_system, tools::text_color_system,
+                tools::fps_update_system, //tools::text_color_system,
                 trackball_camera::trackball_camera_system
                     .run_if(any_with_component::<trackball_camera::TrackballState>),
                 geocentrism,
@@ -112,14 +113,9 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-
-    //prism_earth(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
     //scene::spawn_fox(&mut commands, asset_server);
     //scene::spawn_shapes(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
     //scene::render_earths(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
-
-    // asset loading ----------------------------------------------------------
-    // pass asset_server down and do this in another function
     
     // ground -----------------------------------------------------------------
     //ground_plane(&mut commands, &mut meshes, &mut materials);
@@ -129,7 +125,7 @@ fn setup(
     //camera(&mut commands);
     //camera::spawn_camera(&mut commands);
     //action
-    tools::ui(&mut commands);
+    tools::fps_widget(&mut commands);
 }
 
 
@@ -202,7 +198,7 @@ fn spawn_sun(
         // The light source itself
         DirectionalLight {
             color: Color::WHITE,
-            illuminance: 5000.0, // Make it strong enough to see shadows clearly
+            illuminance: 2500.0, // Make it strong enough to see shadows clearly
             shadows_enabled: true,
             shadow_depth_bias: DirectionalLight::DEFAULT_SHADOW_DEPTH_BIAS,
             shadow_normal_bias: DirectionalLight::DEFAULT_SHADOW_NORMAL_BIAS,
@@ -214,7 +210,7 @@ fn spawn_sun(
         // Marker component for the system to find it
         Star,
         Orbit {
-            speed: PI / 16.0,
+            speed: PI / 64.0,
             axis: Vec3::Y,
             center: target_point,
         },
@@ -233,7 +229,7 @@ fn spawn_sun(
         Star,
         // Link it to the same orbit behavior
         Orbit {
-            speed: PI / 16.0,
+            speed: PI / 64.0,
             axis: Vec3::Y,
             center: target_point,
         },

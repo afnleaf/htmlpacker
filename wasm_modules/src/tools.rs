@@ -29,7 +29,7 @@ pub fn text_color_system(time: Res<Time>, mut query: Query<&mut TextColor, With<
     }
 }
 
-pub fn text_update_system(
+pub fn fps_update_system(
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut TextSpan, With<FpsText>>,
 ) {
@@ -66,6 +66,20 @@ pub fn ui(commands: &mut Commands) {
         ColorText,
     ));
 
+    commands.spawn((
+        // Here we are able to call the `From` method instead of creating a new `TextSection`.
+        // This will use the default font (a minimal subset of FiraMono) and apply the default styling.
+        Text::new("From an &str into a Text with the default font!"),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Px(15.0),
+            ..default()
+        },
+    ));
+}
+
+pub fn fps_widget(commands: &mut Commands) {
     // Empty text for the parent to satisfy Bevy’s hierarchy
     // WHY, im not sure
     commands.spawn((
@@ -85,19 +99,6 @@ pub fn ui(commands: &mut Commands) {
         TextColor(GOLD.into()),
         FpsText,
     ));
-
-    commands.spawn((
-        // Here we are able to call the `From` method instead of creating a new `TextSection`.
-        // This will use the default font (a minimal subset of FiraMono) and apply the default styling.
-        Text::new("From an &str into a Text with the default font!"),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(5.0),
-            left: Val::Px(15.0),
-            ..default()
-        },
-    ));
 }
-    
 
 

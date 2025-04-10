@@ -2,14 +2,20 @@ use bevy::{
     //diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     render::{
         mesh::*,
-        //render_asset::RenderAssetUsages,
+        render_resource::{
+            PrimitiveTopology,
+            Extent3d,
+            TextureDimension,
+            TextureFormat,
+        },
+        render_asset::RenderAssetUsages,
         //render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
     image::{Image},
     //scene::{SceneRoot},
     prelude::*,
 };
-//use std::f32::consts::{FRAC_PI_2, PI };
+use std::f32::consts::{FRAC_PI_2, PI };
 
 const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test.bin.br");
 
@@ -66,8 +72,6 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
             let y = (r * lat_rad.cos() * lon_rad.sin()) as f32;
             let z = (r * lat_rad.sin()) as f32;
 
-
-            
             // swap z and y cause bevy has y as up/down
             vertices.push(Vec3::new(x, y, z));
         }
@@ -76,6 +80,285 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
     vertices
 }
 
+// Add this helper function to create a half-intensity white texture
+fn create_half_intensity_texture(textures: &mut ResMut<Assets<Image>>) -> Handle<Image> {
+    // Create a single white pixel texture with reduced intensity
+    let mut texture_data = [0; 4]; // RGBA
+    texture_data[0] = 180; // R - reduced from 255
+    texture_data[1] = 180; // G - reduced from 255
+    texture_data[2] = 180; // B - reduced from 255
+    texture_data[3] = 255; // A - full alpha
+    
+    // Create a 1x1 texture
+    let texture = Image::new(
+        Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+        TextureDimension::D2,
+        texture_data.to_vec(),
+        TextureFormat::Rgba8Unorm,
+        RenderAssetUsages::default(),
+    );
+    
+    textures.add(texture)
+}
+
+fn fract(x: f32) -> f32 {
+    x - x.floor()
+}
+
+pub fn earth_terrain_mesh(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut textures: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>
+) {
+    // Helper function to get color based on elevation
+    /*
+    fn get_elevation_color(elevation: f32) -> [f32; 4] {
+        // Create the color values directly without depending on Color methods
+        let (r, g, b) = match elevation {
+            e if e < -6000.0 => (8, 14, 48),     // 0x080e30
+            e if e < -3000.0 => (31, 45, 71),    // 0x1f2d47
+            e if e < -150.0 => (42, 60, 99),     // 0x2a3c63
+            e if e < -50.0 => (52, 75, 117),     // 0x344b75
+            e if e < 0.0001 => (87, 120, 179),   // 0x5778b3
+            e if e < 75.0 => (79, 166, 66),      // 0x4fa642
+            e if e < 150.0 => (52, 122, 42),     // 0x347a2a
+            e if e < 400.0 => (0, 83, 11),       // 0x00530b
+            e if e < 1000.0 => (61, 55, 4),      // 0x3d3704
+            e if e < 2000.0 => (128, 84, 17),    // 0x805411
+            e if e < 3200.0 => (151, 122, 68),   // 0x977944
+            e if e < 5000.0 => (182, 181, 181),  // 0xb6b5b5
+            _ => (238, 238, 238),                // 0xeeeeee
+        };
+        
+        // Convert from 0-255 range to 0.0-1.0 range directly
+        [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0]
+    }
+    */
+
+    // Helper function to get color based on elevation
+    fn get_elevation_color(elevation: f32) -> [f32; 4] {
+        // Create the color values with reduced brightness/saturation
+        let (r, g, b) = match elevation {
+            e if e < -6000.0 => (6, 10, 34),     // Darker deep ocean
+            e if e < -3000.0 => (21, 32, 51),    // Darker ocean
+            e if e < -150.0 => (30, 43, 71),     // Darker shallow ocean
+            e if e < -50.0 => (37, 53, 83),      // Darker coastal water
+            e if e < 0.0001 => (62, 86, 128),    // Darker shoreline
+            e if e < 75.0 => (56, 118, 47),      // Darker low land
+            e if e < 150.0 => (37, 87, 30),      // Darker mid land
+            e if e < 400.0 => (0, 59, 8),        // Darker forest/vegetation
+            e if e < 1000.0 => (43, 39, 3),      // Darker low mountains
+            e if e < 2000.0 => (91, 60, 12),     // Darker mountains
+            e if e < 3200.0 => (107, 86, 48),    // Darker high mountains
+            e if e < 5000.0 => (130, 129, 129),  // Darker snow line
+            _ => (170, 170, 170),                // Darker peaks
+        };
+        
+        // Convert from 0-255 range to 0.0-1.0 range directly
+        [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0]
+    }
+    
+    let e = parse_elevation();
+    let vertices = calculate_vertices(&e);
+    
+    let max = 6000.0;
+    let min = -9000.0;
+    let e_scale_f = 0.2;
+    
+    // Create a new mesh from scratch - now with RenderAssetUsages parameter
+    use bevy::render::render_asset::RenderAssetUsages;
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    
+    // For better performance, sample at a lower resolution
+    let lat_step = 1;
+    let lon_step = 1;
+    
+    // Calculate vertices and colors for the mesh
+    let mut mesh_vertices = Vec::new();
+    let mut mesh_colors = Vec::new();
+    let mut mesh_uvs = Vec::new();
+    let mut mesh_normals = Vec::new();
+    let mut indices = Vec::new();
+    
+    // Generate vertices with elevation offset
+    //for i in (0..e.height - lat_step).step_by(lat_step) {
+    //    for j in (0..e.width - lon_step).step_by(lon_step) {
+    for i in (0..e.height).step_by(lat_step) {
+        for j in (0..e.width).step_by(lon_step) {
+            // Get the four corners of a quad
+            let idx = [
+                i * e.width + j,
+                i * e.width + (j + lon_step),
+                (i + lat_step) * e.width + j,
+                (i + lat_step) * e.width + (j + lon_step),
+            ];
+            
+            // Skip if any index is out of bounds
+            if idx.iter().any(|&n| n >= e.elevation.len()) {
+                continue;
+            }
+            
+            // Get elevation data and scale vertices
+            let mut scaled_vertices = [Vec3::ZERO; 4];
+            let mut colors = [[0.0, 0.0, 0.0, 1.0]; 4]; // RGBA float arrays
+            
+            for k in 0..4 {
+                let ev: f32 = e.elevation[idx[k]] as f32;
+                let es = (ev - min) / (max - min);
+                let elevation_scale = 1.0 + (es * e_scale_f);
+                
+                // Apply scale and rotation
+                let rotation_x = Quat::from_rotation_x(FRAC_PI_2);
+                let rotation_y = Quat::from_rotation_y(PI);
+                let combined_rotation = rotation_x * rotation_y;
+                
+                scaled_vertices[k] = combined_rotation
+                    .mul_vec3(vertices[idx[k]] * elevation_scale);
+                colors[k] = get_elevation_color(ev);
+            }
+            
+            // Add vertices to the mesh
+            let base_idx = mesh_vertices.len() as u32;
+            mesh_vertices.extend_from_slice(&scaled_vertices);
+            mesh_colors.extend_from_slice(&colors);
+           
+
+            // Calculate UV coordinates based on normalized position on the sphere
+            /*
+            for k in 0..4 {
+                // Calculate UV coordinates from position on the sphere
+                // This is a simple equirectangular projection
+                let pos = scaled_vertices[k].normalize();
+                let u = (PI + pos.z.atan2(pos.x)) / (2.0 * PI);
+                let v = (FRAC_PI_2 - pos.y.asin()) / PI;
+                
+                mesh_uvs.push([u, v]);
+            }
+            */
+            for k in 0..4 {
+                // Calculate UV coordinates from position on the sphere
+                let pos = scaled_vertices[k].normalize();
+                
+                // Basic equirectangular projection
+                let mut u = (PI + pos.z.atan2(pos.x)) / (2.0 * PI);
+                let mut v = (FRAC_PI_2 - pos.y.asin()) / PI;
+                
+                // Flip the texture horizontally (fix mirroring)
+                u = 1.0 - u;
+                
+                // Rotate to align with elevation data
+                // Try different values here to find the right alignment
+                // Start with 0.25 and adjust as needed
+                u = fract(u + 0.50);
+                
+                // Optional: Flip vertically if needed
+                // v = 1.0 - v;
+                
+                mesh_uvs.push([u, v]);
+            }
+
+            // Calculate normals with strict normalization
+            for k in 0..4 {
+                // Calculate normal based on the local terrain slope
+                let v = scaled_vertices[k];
+                
+                // Find neighboring vertices
+                let dx = if k % 2 == 0 { 
+                    scaled_vertices[k+1] - v 
+                } else { 
+                    v - scaled_vertices[k-1] 
+                };
+                
+                let dy = if k < 2 { 
+                    scaled_vertices[k+2] - v 
+                } else { 
+                    v - scaled_vertices[k-2] 
+                };
+                
+                // Cross product for normal with extra normalization step
+                let mut normal = dx.cross(dy);
+                
+                // Ensure perfect normalization by dividing by exact length
+                let length = normal.length();
+                if length > 1e-6 {  // Prevent division by zero
+                    normal = normal / length;
+                } else {
+                    normal = Vec3::Y; // Default fallback normal
+                }
+                
+                // Verify length is exactly 1.0 (or extremely close)
+                debug_assert!((normal.length() - 1.0).abs() < 1e-6);
+                
+                mesh_normals.push(normal);
+            }
+            
+            // Create two triangles for the quad
+            indices.extend_from_slice(&[
+                base_idx, base_idx + 1, base_idx + 2,
+                base_idx + 1, base_idx + 3, base_idx + 2,
+            ]);
+        }
+    }
+    
+    // Set mesh data
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_vertices);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, mesh_uvs);
+    //mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, mesh_colors);
+    mesh.insert_indices(Indices::U32(indices));
+   
+
+    /*
+    // Create material with better lighting properties
+    let material = materials.add(StandardMaterial {
+        base_color: Color::srgba(0.8, 0.8, 0.8, 0.8),
+        // Lower roughness for a more reflective surface
+        perceptual_roughness: 1.0,
+        // Add some metallic property for better light reflection
+        //metallic: 0.1,
+        // Increase reflectance for better lighting
+        //reflectance: 0.3,
+        ..default()
+    });
+    */
+    
+    /*
+    let material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 1.0, 1.0),
+        // Make it less shiny/reflective
+        perceptual_roughness: 0.9,
+        // Remove any metallic property
+        metallic: 0.0,
+        // Lower reflectance for a more matte appearance
+        reflectance: 0.0,
+        // reduce the base color's intensity to make it less "white-washed"
+        base_color_texture: Some(create_half_intensity_texture(&mut textures)),
+        // Enable vertex colors
+        alpha_mode: AlphaMode::Opaque,
+        // Reduce how much light is reflected
+        diffuse_transmission: 0.0,
+        ..default()
+    });
+    */
+
+    let texture_handle = asset_server.load("textures/texture1.png");
+    let material = materials.add(StandardMaterial {
+        //base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
+        base_color_texture: Some(texture_handle.clone()),
+        perceptual_roughness: 0.9,
+        metallic: 0.0,
+        reflectance: 0.0,
+        diffuse_transmission: 0.0,
+        ..default()
+    });
+
+    // Use the recommended Mesh3d and MeshMaterial3d components
+    let entity = commands.spawn_empty().id();
+    commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
+    commands.entity(entity).insert(MeshMaterial3d(material));
+}
 
 /*
 pub fn prism_earth(
@@ -142,12 +425,13 @@ pub fn prism_earth(
 
 
     let prism_mesh = meshes.add(Cuboid::new(0.07, 0.07, 0.5));
+    
     // In your setup function, change to:
     //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
     // actual_range: Ok(Doubles([-9000.0, 6000.0]))
     let max = 6000.0;
     let min = -9000.0;
-    let e_scale_f = 0.4;
+    let e_scale_f = 0.2;
 
     let lat_step = 1;
     let lon_step = 1;
@@ -209,171 +493,5 @@ pub fn prism_earth(
             ));
         }
     }
-
 }
 
-/*
-fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
-    let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
-    let r = 2.0_f64; // Use f64 for intermediate calculations for precision
-
-    // Ensure dimensions are not zero to avoid division by zero
-    if e.height <= 1 || e.width == 0 { // width can be 1 for a line, but height needs > 1 for lat range
-        return vertices;
-    }
-
-    for i in 0..e.height {
-        // Map i from [0, height-1] to [-90, 90] degrees (latitude)
-        // Corrected mapping: ensures endpoints map correctly. Use f64 for division.
-        let lat_deg = -90.0 + (i as f64 * 180.0 / (e.height as f64 - 1.0));
-        let lat_rad = lat_deg.to_radians(); // Use inherent method
-
-        // The radius projected onto the equatorial (XZ in Bevy) plane depends on latitude
-        let radius_at_lat = r * lat_rad.cos();
-
-        // Bevy's Y coordinate depends only on latitude
-        let bevy_y = r * lat_rad.sin();
-
-        for j in 0..e.width {
-             // Map j from [0, width-1] to [-180, 180] degrees (longitude)
-             // If width represents a full circle (e.g., 360 points), the last point overlaps the first.
-             // A common approach is to map to [0, 360) or [-180, 180).
-             // Using `e.width` in the denominator makes the step `360.0 / e.width`.
-             // Example: if width = 360, j goes 0..359 -> lon_deg = -180 + j * 1.0
-             // Example: if width = 361, j goes 0..360 -> lon_deg = -180 + j * (360/360) = -180 + j
-             // Mapping to [-180, 180] inclusive:
-             let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
-            // Alternative mapping to [0, 360) often used with textures/wrapping:
-            // let lon_deg = j as f64 * 360.0 / e.width as f64;
-
-            let lon_rad = lon_deg.to_radians(); // Use inherent method
-
-            // Bevy's X and Z coordinates depend on longitude and the radius at this latitude
-            let bevy_x = radius_at_lat * lon_rad.cos();
-            let bevy_z = radius_at_lat * lon_rad.sin(); // Standard Y becomes Bevy's Z
-
-            // --- Optional: Incorporate Elevation ---
-            // If you want to use the elevation data:
-            // let elevation_index = i * e.width + j;
-            // let current_elevation = e.elevation.get(elevation_index).copied().unwrap_or(0.0);
-            // let scale_factor = 0.01; // Adjust how much elevation affects the radius
-            // let adjusted_r = r + current_elevation * scale_factor;
-            // // Recalculate x, y, z using adjusted_r instead of r
-            // let radius_at_lat = adjusted_r * lat_rad.cos();
-            // let bevy_y = adjusted_r * lat_rad.sin();
-            // let bevy_x = radius_at_lat * lon_rad.cos();
-            // let bevy_z = radius_at_lat * lon_rad.sin();
-            // --- End Optional Elevation ---
-
-
-            // Push the vertex with coordinates correctly mapped for Bevy (Y-up)
-            // Cast to f32 at the end
-            vertices.push(Vec3::new(bevy_x as f32, bevy_y as f32, bevy_z as f32));
-        }
-    }
-
-    vertices
-}
-*/
-
-
-    /*
-    so what we do next, assets, what do we need them for?
-    textures -> materials -> meshesh
-    models -> objects, characters
-
-    we have a bunch of textures we want to apply
-    we want to load them all at the same time in an array of 109 size
-let textures: Vec<Handle<Image>> = (1..=109)
-        .map(|i| asset_server.load(format!("textures/texture_{}.png", i)))
-        .collect();
-let material = materials.add(StandardMaterial {
-            base_color_texture: Some(textures[i].clone()),
-            ..default()
-        });
-    let mesh_handle = meshes.add(Sphere::default().mesh().uv(32, 18));
-    
-commands.spawn((
-            PbrBundle {
-                mesh: mesh_handle.clone(),
-                material,
-                transform: Transform::from_translation(position),
-                ..default()
-            },
-            Shape, // Your marker component
-        ));
-    */
-    //decompressor.read_to_end(&mut decompressed)
-    //println!("{:?}", decompressed);
-
-// bevy vec struct?
-/*
-fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
-    let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
-
-    for i in 0..e.height { //latitude
-        for j in 0..e.width { //longitude
-            //println!("Elevation at {},{}: {}", 
-            //    i, j, e.elevation[i * e.width + j]);
-
-            // calculate 3d position from latitude and longitude
-            use std::f64::consts::PI;
-            //let a = x.tan();
-            //let b = x.sin() / x.cos();
-            //let r = 6378 // radius in km
-            let r = 2.0;
-            let a = PI / 180.0;
-            let r_la = i as f64 * a;
-            let r_lo = j as f64 * a;
-
-            let x = (r * r_la.cos() * r_lo.cos()) as f32;
-            let y = (r * r_la.cos() * r_lo.sin()) as f32;
-            let z = (r * r_la.sin()) as f32;
-
-            vertices.push(Vec3::new(x, y, z));
-            //println!("x{} y{} z{}", x, y, z);
-        }
-    }
-
-    vertices
-}
-*/
-
-
-
-
-
-
-/*
-fn spawn_beam_to_origin(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    material: Handle<StandardMaterial>,
-    target_position: Vec3
-) {
-    // Calculate the length of the beam
-    let length = target_position.length();
-    
-    if length > 0.0 {
-        // Create a 1x1 rectangular extrusion
-        let mesh_handle = meshes.add(Extrusion::new(Rectangle::new(0.1, 0.1), length));
-        
-        // Calculate midpoint for positioning
-        let midpoint = target_position / 2.0;
-        
-        // Calculate rotation to align with the target direction
-        // Default extrusion is along the z-axis, so rotate from z to target
-        let direction = target_position.normalize();
-        let rotation = Quat::from_rotation_arc(Vec3::Z, direction);
-        
-        // Spawn the entity
-        commands.spawn((
-            Mesh3d(mesh_handle),
-            MeshMaterial3d(material.clone()),
-            Transform::from_translation(midpoint)
-                   .with_rotation(rotation),
-            //Shape,
-        ));
-    }
-}
-*/
