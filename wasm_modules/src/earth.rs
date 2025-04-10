@@ -121,6 +121,7 @@ pub fn prism_earth(
             *max_e, 
             materials.add(StandardMaterial {
                 base_color: Color::srgb_u8(color[0], color[1], color[2]),
+                perceptual_roughness: 1.0,
                 ..default()
             })
         )
@@ -140,13 +141,13 @@ pub fn prism_earth(
     });
 
 
-    let prism_mesh = meshes.add(Cuboid::new(0.05, 0.05, 0.2));
+    let prism_mesh = meshes.add(Cuboid::new(0.07, 0.07, 0.5));
     // In your setup function, change to:
     //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
     // actual_range: Ok(Doubles([-9000.0, 6000.0]))
     let max = 6000.0;
     let min = -9000.0;
-    let e_scale_f = 0.5;
+    let e_scale_f = 0.4;
 
     let lat_step = 1;
     let lon_step = 1;

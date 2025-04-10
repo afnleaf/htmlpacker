@@ -19,6 +19,7 @@ use bevy::{
 //use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 use std::f32::consts::PI;
 
+
 // A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component)]
 pub struct Shape;
