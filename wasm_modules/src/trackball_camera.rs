@@ -11,12 +11,7 @@ pub struct TrackballCameraBundle {
     pub state: TrackballState,
     pub settings: TrackballSettings,
 }
-    /*
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
-    ));
-    */
+    
 
 // The internal state of the trackball controller
 #[derive(Component)]
@@ -78,14 +73,14 @@ impl Default for TrackballSettings {
     fn default() -> Self {
         TrackballSettings {
             rotate_speed: 0.5,
-            zoom_speed: 1.2,
+            zoom_speed: 0.6,
             pan_speed: 0.01,
             
             static_moving: false,
             damping_factor: 0.3,
             
-            min_distance: 0.1,
-            max_distance: 1000.0,
+            min_distance: 0.0001,
+            max_distance: 10000000.0,
             
             // Default to Three.js settings
             rotate_button: MouseButton::Left,
@@ -102,8 +97,8 @@ pub fn spawn_trackball_camera(mut commands: Commands) {
     let mut camera = TrackballCameraBundle::default();
     // Initial position
     camera.state.target = Vec3::ZERO;
-    camera.state.position = Vec3::new(0.0, 0.0, 10.0);
-    camera.state.distance = 10.0;
+    camera.state.position = Vec3::new(0.0, 0.0, 100.0);
+    camera.state.distance = 100.0;
     commands.spawn(camera);
 }
 
@@ -208,32 +203,6 @@ pub fn trackball_camera_system(
         }
         
         
-        /*
-        // Apply damping if not static moving
-        if !settings.static_moving {
-            // Apply rotation velocity with damping
-            if !state.moving && !state.rotation_velocity.is_near_identity() {
-                // Create temporary copies to avoid double borrowing
-                let current_rotation = state.rotation_quat;
-                let current_velocity = state.rotation_velocity;
-                
-                state.rotation_quat = current_rotation * current_velocity;
-                state.rotation_velocity = Quat::lerp(
-                    current_velocity,
-                    Quat::IDENTITY,
-                    settings.damping_factor
-                );
-            }
-            
-            // Apply translation velocity with damping
-            if !state.moving && state.velocity.length_squared() > 0.001 {
-                // Create a temporary copy of velocity to avoid double borrowing
-                let current_velocity = state.velocity;
-                state.target += current_velocity;
-                state.velocity *= 1.0 - settings.damping_factor;
-            }
-        }
-        */
 
         // Apply damping if not static moving
         if !settings.static_moving {
@@ -279,3 +248,35 @@ pub fn trackball_camera_system(
 
 // Add this system to your App
 // app.add_systems(Update, trackball_camera_system);
+/*
+commands.spawn((
+    Camera3d::default(),
+    Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
+));
+*/
+        /*
+        // Apply damping if not static moving
+        if !settings.static_moving {
+            // Apply rotation velocity with damping
+            if !state.moving && !state.rotation_velocity.is_near_identity() {
+                // Create temporary copies to avoid double borrowing
+                let current_rotation = state.rotation_quat;
+                let current_velocity = state.rotation_velocity;
+                
+                state.rotation_quat = current_rotation * current_velocity;
+                state.rotation_velocity = Quat::lerp(
+                    current_velocity,
+                    Quat::IDENTITY,
+                    settings.damping_factor
+                );
+            }
+            
+            // Apply translation velocity with damping
+            if !state.moving && state.velocity.length_squared() > 0.001 {
+                // Create a temporary copy of velocity to avoid double borrowing
+                let current_velocity = state.velocity;
+                state.target += current_velocity;
+                state.velocity *= 1.0 - settings.damping_factor;
+            }
+        }
+        */
