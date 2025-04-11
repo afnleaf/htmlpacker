@@ -198,7 +198,7 @@ fn spawn_sun(
         // The light source itself
         DirectionalLight {
             color: Color::WHITE,
-            illuminance: 2500.0, // Make it strong enough to see shadows clearly
+            illuminance: 5000.0, // Make it strong enough to see shadows clearly
             shadows_enabled: true,
             shadow_depth_bias: DirectionalLight::DEFAULT_SHADOW_DEPTH_BIAS,
             shadow_normal_bias: DirectionalLight::DEFAULT_SHADOW_NORMAL_BIAS,

@@ -7,6 +7,7 @@ use bevy::{
             Extent3d,
             TextureDimension,
             TextureFormat,
+            Face,
         },
         render_asset::RenderAssetUsages,
         //render_resource::{Extent3d, TextureDimension, TextureFormat},
@@ -17,7 +18,7 @@ use bevy::{
 };
 use std::f32::consts::{FRAC_PI_2, PI };
 
-const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test.bin.br");
+const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test2.bin.br");
 
 use crate::scene;
 
@@ -47,8 +48,8 @@ fn parse_elevation() -> ElevationData {
     }
     let e = ElevationData {
         elevation,
-        height: 181,
-        width: 361,
+        height: 1801,
+        width: 3601,
     };
     e
 }
@@ -57,28 +58,61 @@ fn calculate_vertices(e: &ElevationData) -> Vec<Vec3> {
     let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
     let r = 2.0_f64; // sphere radius
     
+    //for i in (0..e.height).rev() {
     for i in 0..e.height {
         // Map i from [0, height-1] to [-90, 90] degrees (latitude)
         let lat_deg = -90.0 + (i as f64 * 180.0 / (e.height as f64 - 1.0));
         let lat_rad = lat_deg * std::f64::consts::PI / 180.0;
         
+        //for j in (0..e.width).rev() {
         for j in 0..e.width {
             // Map j from [0, width-1] to [-180, 180] degrees (longitude)
             let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
             let lon_rad = lon_deg * std::f64::consts::PI / 180.0;
            
-
             let x = (r * lat_rad.cos() * lon_rad.cos()) as f32;
             let y = (r * lat_rad.cos() * lon_rad.sin()) as f32;
             let z = (r * lat_rad.sin()) as f32;
 
-            // swap z and y cause bevy has y as up/down
             vertices.push(Vec3::new(x, y, z));
         }
     }
     
     vertices
 }
+
+fn calculate_vertices_big(e: &ElevationData) -> Vec<Vec3> {
+    let mut vertices: Vec<Vec3> = Vec::with_capacity(e.height * e.width);
+    let r = 2.0_f64; // sphere radius
+    
+    // Iterate through latitude (i) and longitude (j) indices
+    for i in 0..e.height {
+        // Map i from [0, height-1] to [90, -90] degrees (latitude)
+        // Starting at North Pole (90°) and going down to South Pole (-90°)
+        let lat_deg = 90.0 - (i as f64 * 180.0 / (e.height as f64 - 1.0));
+        let lat_rad = lat_deg * std::f64::consts::PI / 180.0;
+        
+        for j in 0..e.width {
+            // Map j from [0, width-1] to [-180, 180] degrees (longitude)
+            // Starting at International Date Line (-180°) and going eastward
+            let lon_deg = -180.0 + (j as f64 * 360.0 / (e.width as f64 - 1.0));
+            let lon_rad = lon_deg * std::f64::consts::PI / 180.0;
+           
+            // Standard spherical to Cartesian coordinate conversion
+            // For consistent orientation with 3D graphics conventions:
+            // In typical 3D space, +Y is up, but for Earth, +Z is often North
+            // So we map: longitude to XY-plane, latitude to Z
+            let x = (r * lat_rad.cos() * lon_rad.cos()) as f32;
+            let y = (r * lat_rad.cos() * lon_rad.sin()) as f32;
+            let z = (r * lat_rad.sin()) as f32;
+            
+            vertices.push(Vec3::new(x, y, z));
+        }
+    }
+    
+    vertices
+}
+
 
 // Add this helper function to create a half-intensity white texture
 fn create_half_intensity_texture(textures: &mut ResMut<Assets<Image>>) -> Handle<Image> {
@@ -161,11 +195,12 @@ pub fn earth_terrain_mesh(
     }
     
     let e = parse_elevation();
-    let vertices = calculate_vertices(&e);
+    let vertices = calculate_vertices_big(&e);
     
-    let max = 6000.0;
+    let max = 10500.0;
+    //let max = 6000.0;
     let min = -9000.0;
-    let e_scale_f = 0.2;
+    let e_scale_f = 0.1;
     
     // Create a new mesh from scratch - now with RenderAssetUsages parameter
     use bevy::render::render_asset::RenderAssetUsages;
@@ -216,6 +251,9 @@ pub fn earth_terrain_mesh(
                 
                 scaled_vertices[k] = combined_rotation
                     .mul_vec3(vertices[idx[k]] * elevation_scale);
+                //scaled_vertices[k] = vertices[idx[k]] * elevation_scale;
+                //scaled_vertices[k] = rotation_x
+                //    .mul_vec3(vertices[idx[k]] * elevation_scale);
                 colors[k] = get_elevation_color(ev);
             }
             
@@ -246,7 +284,7 @@ pub fn earth_terrain_mesh(
                 let mut v = (FRAC_PI_2 - pos.y.asin()) / PI;
                 
                 // Flip the texture horizontally (fix mirroring)
-                u = 1.0 - u;
+                //u = 1.0 - u;
                 
                 // Rotate to align with elevation data
                 // Try different values here to find the right alignment
@@ -260,6 +298,7 @@ pub fn earth_terrain_mesh(
             }
 
             // Calculate normals with strict normalization
+            /*
             for k in 0..4 {
                 // Calculate normal based on the local terrain slope
                 let v = scaled_vertices[k];
@@ -293,11 +332,41 @@ pub fn earth_terrain_mesh(
                 
                 mesh_normals.push(normal);
             }
+            */
+            for k in 0..4 {
+                // For spherical terrain, use position-based normals
+                // This works better for global shape illumination
+                let base_normal = scaled_vertices[k].normalize();
+                
+                // Blend with terrain-based normal for detail
+                let v = scaled_vertices[k];
+                let dx = if k % 2 == 0 { scaled_vertices[k+1] - v } else { v - scaled_vertices[k-1] };
+                let dy = if k < 2 { scaled_vertices[k+2] - v } else { v - scaled_vertices[k-2] };
+                
+                // Calculate terrain normal
+                let mut terrain_normal = dy.cross(dx); // Note: reversed order for correct orientation
+                if terrain_normal.length() > 1e-6 {
+                    terrain_normal = terrain_normal.normalize();
+                } else {
+                    terrain_normal = base_normal;
+                }
+                
+                // Blend between base sphere normal and terrain normal
+                // Higher weight for base_normal gives smoother lighting
+                let normal = (base_normal * 0.7 + terrain_normal * 0.3).normalize();
+                mesh_normals.push(normal);
+            }
             
             // Create two triangles for the quad
+            /*
             indices.extend_from_slice(&[
                 base_idx, base_idx + 1, base_idx + 2,
                 base_idx + 1, base_idx + 3, base_idx + 2,
+            ]);
+            */
+            indices.extend_from_slice(&[
+                base_idx, base_idx + 2, base_idx + 1,
+                base_idx + 1, base_idx + 2, base_idx + 3,
             ]);
         }
     }
@@ -305,8 +374,8 @@ pub fn earth_terrain_mesh(
     // Set mesh data
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_normals);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, mesh_uvs);
-    //mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, mesh_colors);
+    //mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, mesh_uvs);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, mesh_colors);
     mesh.insert_indices(Indices::U32(indices));
    
 
@@ -324,11 +393,10 @@ pub fn earth_terrain_mesh(
     });
     */
     
-    /*
     let material = materials.add(StandardMaterial {
         base_color: Color::srgb(1.0, 1.0, 1.0),
         // Make it less shiny/reflective
-        perceptual_roughness: 0.9,
+        perceptual_roughness: 1.0,
         // Remove any metallic property
         metallic: 0.0,
         // Lower reflectance for a more matte appearance
@@ -338,11 +406,13 @@ pub fn earth_terrain_mesh(
         // Enable vertex colors
         alpha_mode: AlphaMode::Opaque,
         // Reduce how much light is reflected
-        diffuse_transmission: 0.0,
+        //diffuse_transmission: 0.0,
+        //cull_mode: None,\
+        cull_mode: Some(Face::Back),
         ..default()
     });
-    */
-
+    
+    /*
     let texture_handle = asset_server.load("textures/texture1.png");
     let material = materials.add(StandardMaterial {
         //base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
@@ -353,7 +423,7 @@ pub fn earth_terrain_mesh(
         diffuse_transmission: 0.0,
         ..default()
     });
-
+    */
     // Use the recommended Mesh3d and MeshMaterial3d components
     let entity = commands.spawn_empty().id();
     commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
