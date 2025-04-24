@@ -175,7 +175,8 @@ pub fn earth_terrain_mesh(
     
     let max = 8848.86; // mt everest
     let min = -10909.0; // marianas trench
-    let e_scale_f = 0.06;
+    let e_scale_f = 0.2;
+    //let e_scale_f = 0.06;
     //let e_scale_f = 0.00309781436186892442772028849169;
     
     // Create a new mesh from scratch - now with RenderAssetUsages parameter

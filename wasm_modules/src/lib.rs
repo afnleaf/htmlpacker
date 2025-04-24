@@ -58,21 +58,26 @@ pub fn start_bevy() {
             ..default()
         }),
     );
+    
+    //web_sys::console::log_1(&"TEST 1".into());
     // add rest
-    app
-        .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0))) // black bg
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        .add_systems(Startup,(
+    app.insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0))); // black bg
+    //web_sys::console::log_1(&"TEST 2".into());
+    app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default());
+    //web_sys::console::log_1(&"TEST 3".into());
+    app.add_systems(Startup,(
                 initial_setup,
                 //earth::prism_earth,
                 earth::earth_terrain_mesh,
                 sun::spawn_sun_geocentrism,
-        ))
-        .add_systems(PostStartup,
+        ));
+    //web_sys::console::log_1(&"TEST 4".into());
+    app.add_systems(PostStartup,
                 //camera::spawn_camera,
                 trackball_camera::spawn_trackball_camera,
-        )
-        .add_systems(
+        );
+    //web_sys::console::log_1(&"TEST 5".into());
+    app.add_systems(
             Update,
             (
                 //scene::rotate_shapes,
@@ -83,8 +88,10 @@ pub fn start_bevy() {
                 //camera::pan_orbit_camera
                 //    .run_if(any_with_component::<camera::PanOrbitState>),
             ),
-        )
-        .run();
+        );
+    //web_sys::console::log_1(&"TEST 6".into());
+    app.run();
+    //web_sys::console::log_1(&"IDK WHAT ISNT WORKING".into());
 }
 
 /*
