@@ -67,8 +67,8 @@ pub fn start_bevy() {
     //web_sys::console::log_1(&"TEST 3".into());
     app.add_systems(Startup,(
                 initial_setup,
-                //earth::prism_earth,
-                earth::earth_terrain_mesh,
+                earth::prism_earth,
+                //earth::earth_terrain_mesh,
                 sun::spawn_sun_geocentrism,
         ));
     //web_sys::console::log_1(&"TEST 4".into());

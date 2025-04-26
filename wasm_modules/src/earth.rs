@@ -18,7 +18,28 @@ use bevy::{
 };
 use std::f32::consts::{FRAC_PI_2, PI };
 
-const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test3.bin.br");
+
+struct RawData {
+    data: &'static [u8],
+    height: usize,
+    width: usize,
+}
+
+const ELEVATION_DATA_L: RawData = RawData {
+    data: include_bytes!("../assets/test3.bin.br"),
+    height: 1801,
+    width: 3601,
+};
+
+const ELEVATION_DATA_S: RawData = RawData {
+    data: include_bytes!("../assets/test.bin.br"),
+    height: 181,
+    width: 361
+};
+
+
+//const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test3.bin.br");
+//const ELEVATION_DATA_SMALL: &[u8] = include_bytes!("../assets/test.bin.br");
 
 use crate::scene;
 
@@ -29,27 +50,29 @@ struct ElevationData {
     width: usize, // longitude
 }
 
-fn decompress_elevation() -> Vec<u8> {
+fn decompress_elevation(data: &[u8]) -> Vec<u8> {
     let mut decompressor = 
         brotli::Decompressor::new(
-            std::io::Cursor::new(ELEVATION_DATA_BYTES), 4096);
+            std::io::Cursor::new(data), 4096);
     let mut decompressed = Vec::new();
     std::io::Read::read_to_end(&mut decompressor, &mut decompressed)
         .expect("Failed to decompress data");
     decompressed
 }
 
-fn parse_elevation() -> ElevationData {
-    let decompressed = decompress_elevation();
+// s means
+fn parse_elevation(data: RawData) -> ElevationData {
+    let decompressed = decompress_elevation(data.data);
     let mut elevation = Vec::with_capacity(decompressed.len() / 2);
     for c in decompressed.chunks_exact(2) {
         elevation.push(
             i16::from_le_bytes([c[0], c[1]]));
     }
+
     let e = ElevationData {
         elevation,
-        height: 1801,
-        width: 3601,
+        height: data.height,
+        width: data.width,
     };
     e
 }
@@ -170,7 +193,7 @@ pub fn earth_terrain_mesh(
     mut textures: ResMut<Assets<Image>>,
     asset_server: Res<AssetServer>
 ) {
-    let e = parse_elevation();
+    let e = parse_elevation(ELEVATION_DATA_L);
     let vertices = calculate_vertices_big(&e);
     
     let max = 8848.86; // mt everest
@@ -243,7 +266,12 @@ pub fn earth_terrain_mesh(
             
             // UV coordinates from position on the sphere
             for k in 0..4 {
-                let pos = scaled_vertices[k].normalize();
+                //let pos = scaled_vertices[k].normalize();
+                let pos = if scaled_vertices[k].length() > f32::EPSILON {
+                    scaled_vertices[k].normalize()
+                } else {
+                    Vec3::Y
+                };
                 
                 // Basic equirectangular projection
                 let mut u = (PI + pos.z.atan2(pos.x)) / (2.0 * PI);
@@ -267,7 +295,12 @@ pub fn earth_terrain_mesh(
             // For spherical terrain, use position-based normals
             for k in 0..4 {
                 // This works better for global shape illumination
-                let base_normal = scaled_vertices[k].normalize();
+                //let base_normal = scaled_vertices[k].normalize();
+                let base_normal = if scaled_vertices[k].length() > f32::EPSILON {
+                    scaled_vertices[k].normalize()
+                } else {
+                    Vec3::Y
+                };
                 
                 // Blend with terrain-based normal for detail
                 let v = scaled_vertices[k];
@@ -374,7 +407,7 @@ pub fn prism_earth(
 ) {
     //commands.insert_resource(&e);
     //commands.apply(&mut world);
-    let e = parse_elevation();
+    let e = parse_elevation(ELEVATION_DATA_S);
     let vertices = calculate_vertices(&e);
 
     // Pre-generate all materials based on elevation ranges
@@ -475,7 +508,12 @@ pub fn prism_earth(
             let rotated_position = combined_rotation.mul_vec3(scaled_position);
             
             // Then calculate direction using the rotated position
-            let direction = rotated_position.normalize();
+            //let direction = rotated_position.normalize();
+            let direction = if rotated_position.length() > f32::EPSILON {
+                rotated_position.normalize()
+            } else {
+                Vec3::Y
+            };
             let orientation = Quat::from_rotation_arc(Vec3::Z, direction);            
             // Spawn entity with transform
             commands.spawn((
