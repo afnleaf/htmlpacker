@@ -87,7 +87,7 @@ impl Default for TrackballSettings {
             pan_speed: 0.1,
             static_moving: false,
             damping_factor: 0.2,
-            min_distance: 0.0,
+            min_distance: 0.0001,
             max_distance: f32::INFINITY,
             no_rotate: Some(false),
             no_zoom: Some(false),
@@ -121,7 +121,8 @@ pub fn trackball_camera_system(
 ) {
     // Get the primary window
     let window = primary_window_query.single();
-    let screen_width = window.width();
+    //let screen_width = window.expect("REASON").width();
+    let screen_width = window.unwrap().width();
 
     // Accumulate mouse motion
     let mouse_delta: Vec2 = evr_motion.read().map(|ev| ev.delta).sum();

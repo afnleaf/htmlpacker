@@ -103,7 +103,7 @@ pub fn orbit_geocentrism(
         // allows for smoother and more predictable movement
         let total_time = time.elapsed_secs();
         
-        // how far away sun is from eart
+        // how far away sun is from earth
         let radius = 149_000.0;
         let angle = orbit.speed * total_time;
         // calc new position in orbit directly using sine and cosine
@@ -122,7 +122,7 @@ pub fn orbit_geocentrism(
 pub fn ambient_light(commands: &mut Commands) {
     commands.insert_resource(AmbientLight {
         //color: WHITE.into(),
-        brightness: 1000.0,
+        brightness: 250.0,
         ..default()
     });
 }

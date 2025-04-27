@@ -12,7 +12,7 @@ use bevy::{
     image::{Image},
     prelude::*,
 };
-use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
+//use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 mod dom;
 mod tools;
@@ -31,6 +31,9 @@ pub fn start() {
     web_sys::console::log_1(&"Starting Bevy WASM application".into());
     // create canvas and add to document
     dom::create_canvas().expect("Failed to create canvas");
+    // disable right click
+    //document.addEventListener('contextmenu', event => event.preventDefault());
+    //todo!();
     // start app
     start_bevy();
 }
@@ -41,9 +44,9 @@ pub fn start_bevy() {
 
     // embed all files in assets folder into the binary
     // this replaces the default bevy asset plugin:5
-    app.add_plugins(EmbeddedAssetPlugin {
-        mode: PluginMode::ReplaceDefault,
-    });
+    //app.add_plugins(EmbeddedAssetPlugin {
+    //    mode: PluginMode::ReplaceDefault,
+    //});
     // add default plugins
     app.add_plugins(
         DefaultPlugins.set(WindowPlugin {
@@ -67,9 +70,9 @@ pub fn start_bevy() {
     //web_sys::console::log_1(&"TEST 3".into());
     app.add_systems(Startup,(
                 initial_setup,
-                earth::prism_earth,
+                earth::prism_earth2,
+                sun::spawn_sun_geocentrism
                 //earth::earth_terrain_mesh,
-                sun::spawn_sun_geocentrism,
         ));
     //web_sys::console::log_1(&"TEST 4".into());
     app.add_systems(PostStartup,
@@ -123,6 +126,7 @@ fn initial_setup(
     //camera::spawn_camera(&mut commands);
     //action
     tools::fps_widget(&mut commands);
+    sun::ambient_light(&mut commands);
 }
 
 fn ground_plane(

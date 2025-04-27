@@ -99,6 +99,9 @@ async function runApp() {
     }, 100); // Short delay to show "ready" message
 }
 
+// prevent right click?
+// should be from bindgen?
+document.addEventListener('contextmenu', event => event.preventDefault());
 // run app when the page is loaded
 window.addEventListener('DOMContentLoaded', runApp);
 

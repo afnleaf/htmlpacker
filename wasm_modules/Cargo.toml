@@ -20,33 +20,35 @@ wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "0.1.7"
 #bevy_image = "0.15.3"
-bevy_render = "0.15.3"
+#bevy_render = "0.15.3"
 #gltf = "1.4.1"
 #bytemuck = "1.14"
 bevy_embedded_assets = "0.12.0"
+#bevy_embedded_assets = "0.13.0"
 #iyes_perf_ui = "0.4.0"
 #bevy_mini_fps = "0.1.0"
 #rand = "0.9.0"
 #getrandom = { version = "0.3.2", features = ["wasm_js"] }
 
 [dependencies.bevy]
-version = "0.15.3"
+#version = "0.15.3"
+version = "0.16.0"
 default-features = false
 features = [
     "bevy_winit",           # Window handling
     "bevy_render",          # Rendering system
     "bevy_core_pipeline",   # Core rendering pipeline
     "bevy_pbr",             # 3D rendering
-    #"bevy_sprite",         # 2D support
     "bevy_text",            # Text rendering
     "bevy_ui",              # UI system
     "webgl2",               # WebGL2 support (crucial for web)
-    "png",                  # Image support
-    "bevy_image",           # load images
-    "bevy_gltf",
-    #"animation",
     "tonemapping_luts",
     "default_font",
+    "png",                  # Image support
+    "bevy_image",           # load images
+    #"bevy_gltf",
+    #"animation",
+    #"bevy_sprite",         # 2D support
     #"iyes_perf_ui"
     #"diagnostic"
 ]
@@ -101,8 +103,8 @@ strip = true
 
 # not sure why wasm-opt O3 and O2 are not working
 [package.metadata.wasm-pack.profile.release]
-#wasm-opt = ["--optimize-level=4", "--shrink-level=2", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
 wasm-opt = ["-Oz", "--optimize-level=3", "--shrink-level=2", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+#wasm-opt = ["--optimize-level=4", "--shrink-level=2", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
 #wasm-opt = ["-O3", "--enable-bulk-memory", "--enable-mutable-globals"]
 #wasm-opt = [
 #    "--optimize-level=4",
