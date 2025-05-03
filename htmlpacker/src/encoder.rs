@@ -23,15 +23,15 @@ use base64::prelude::*;
 
 #[derive(Debug)]
 pub struct Base {
-    pub id: String,
-    pub sl: String,
+    pub id: String, // identifier
+    pub text: String, // text content
 }
 
 impl Base {
-    pub fn new(id: String, sl: String) -> Self {
+    pub fn new(id: String, text: String) -> Self {
         Base {
             id: id,
-            sl: sl,
+            text: text,
         }
     }
 }

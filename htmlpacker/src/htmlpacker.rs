@@ -104,7 +104,7 @@ fn binary(
     html! {
         @for b in &bin {
             pre id=(b.id) style="display: none;" {
-                (b.sl)
+                (b.text)
             }
         }
     }

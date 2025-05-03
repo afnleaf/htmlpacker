@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let icon_svg64 = encoder::encode_base64("../public/icon.svg", "").unwrap();
 
     //println!("{:?}", icon_svg64);
-    let icons = vec![icon_svg64.sl];
+    let icons = vec![icon_svg64.text];
 
     // external scripts to fetch
     let external_scripts_text = htmlpacker::get_external_scripts_text(

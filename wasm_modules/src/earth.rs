@@ -17,7 +17,10 @@ use bevy::{
     prelude::*,
 };
 use std::f32::consts::{FRAC_PI_2, PI };
+use std::path::PathBuf;
+use bevy_embedded_assets::EmbeddedAssetReader;
 //use crate::scene;
+use crate::CurrentMap;
 
 
 struct RawData {
@@ -26,14 +29,16 @@ struct RawData {
     width: usize,
 }
 
+/*
 const ELEVATION_DATA_L: RawData = RawData {
     data: include_bytes!("../assets/test3.bin.br"),
     height: 1801,
     width: 3601,
 };
+*/
 
 const ELEVATION_DATA_S: RawData = RawData {
-    data: include_bytes!("../assets/test.bin.br"),
+    data: include_bytes!("../assets/deg1/1.br"),
     height: 181,
     width: 361
 };
@@ -42,9 +47,22 @@ const ELEVATION_DATA_S: RawData = RawData {
 //const ELEVATION_DATA_BYTES: &[u8] = include_bytes!("../assets/test3.bin.br");
 //const ELEVATION_DATA_SMALL: &[u8] = include_bytes!("../assets/test.bin.br");
 
+#[derive(Resource)]
+pub struct AllMapData {
+    maps: Vec<ElevationData>,
+}
+
+pub fn load_map_data(mut commands: Commands) {
+    let maps = load_and_parse_maps_deg1();
+    commands.insert_resource(AllMapData { maps });
+}
+
+#[derive(Component)]
+pub struct MapEntity;
+
 
 #[derive(Resource)]
-struct ElevationData {
+pub struct ElevationData {
     elevation: Vec<i16>,
     height: usize, // latitude
     width: usize, // longitude
@@ -140,19 +158,69 @@ fn calculate_vertices_large(e: &ElevationData) -> Vec<Vec3> {
     vertices
 }
 
+pub fn load_and_parse_maps_deg1() -> Vec<ElevationData> {
+    let embedded = EmbeddedAssetReader::preloaded();
+    let mut map_data: Vec<ElevationData> = Vec::with_capacity(109);
+    for i in 1..=109 {
+        let file_path = format!("deg1/{}.br", i);
+        match embedded.load_path_sync(&PathBuf::from(&file_path)) {
+            Ok(reader) => {
+                let r = RawData {
+                    data: reader.0,
+                    height: 181,
+                    width: 361,
+                };
+                let e = parse_elevation(r);
+                map_data.push(e);
+            },
+            Err(err) => {
+                println!("Failed to load file {}: {:?}", i, err);
+            }
+        }
+    }
 
+    map_data
+}
 
-pub fn prism_earth(
+pub fn update_earth(
     mut commands: Commands,
+    current_map: Res<CurrentMap>,
+    all_map_data: Res<AllMapData>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
+    map_entities: Query<Entity, With<MapEntity>>,
 ) {
-    //commands.insert_resource(&e);
-    //commands.apply(&mut world);
-    let e = parse_elevation(ELEVATION_DATA_S);
-    let vertices = calculate_vertices_small(&e);
+    // take not of the use of is_changed()
+    // we only run this function when it is true
+    if !current_map.is_changed() {
+        return;
+    }
+
+    // remove all prisms from the scene
+    for entity in map_entities.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    let e = &all_map_data.maps[current_map.index];
+
+    render_earth(
+        &mut commands,
+        e,
+        &mut meshes,
+        &mut images,
+        &mut materials,
+    );
+}
+
+pub fn render_earth(
+    commands: &mut Commands,
+    e: &ElevationData,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    images: &mut ResMut<Assets<Image>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    let vertices = calculate_vertices_small(e);
 
     // Pre-generate all materials based on elevation ranges
     let elevation_materials = [
@@ -269,11 +337,178 @@ pub fn prism_earth(
                 MeshMaterial3d(material.clone()),
                 //Transform::from_translation(vertex_pos)
                 Transform::from_translation(rotated_position)
-                    .with_rotation(orientation)
+                    .with_rotation(orientation),
                     //.with_scale(Vec3::new(es, es, es)),
+                MapEntity,
             ));
         }
     }
+
+}
+
+pub fn prism_earth(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut images: ResMut<Assets<Image>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    //mut current_map: ResMut<CurrentMap>,
+    asset_server: Res<AssetServer>,
+    current_map: Res<CurrentMap>,
+    all_map_data: Res<AllMapData>,
+) {
+    render_earth(
+        &mut commands,
+        &all_map_data.maps[current_map.index],
+        &mut meshes,
+        &mut images,
+        &mut materials
+    );
+
+
+    /*
+    let embedded = EmbeddedAssetReader::preloaded();
+    let i = 32;
+    let file_path = format!("deg1/{}.br", i);
+    let reader = embedded.load_path_sync(&PathBuf::from(&file_path)).unwrap();
+    let r = RawData {
+        data: reader.0,
+        height: 181,
+        width:  361,
+    };
+    let e = parse_elevation(r);
+    */
+    //commands.insert_resource(&e);
+    //commands.apply(&mut world);
+    //let e = parse_elevation(ELEVATION_DATA_S);
+    //let vertices = calculate_vertices_small(&e);
+    /*
+    let map_data = load_and_parse_maps_deg1();
+    let e = &map_data[current_map.index];
+    let vertices = calculate_vertices_small(&e);
+
+
+    // Pre-generate all materials based on elevation ranges
+    let elevation_materials = [
+        // Define the elevation ranges and corresponding colors
+        (-13000.0, -6000.0, [8, 14, 48]),       // 0x080e30
+        (-6000.0, -3000.0, [31, 45, 71]),       // 0x1f2d47
+        (-3000.0, -150.0, [42, 60, 99]),        // 0x2a3c63
+        (-150.0, -50.0, [52, 75, 117]),         // 0x344b75
+        (-50.0, 0.0001, [87, 120, 179]),           // 0x5778b3
+        (0.0001, 75.0, [79, 166, 66]),             // 0x4fa642
+        (75.0, 150.0, [52, 122, 42]),           // 0x347a2a
+        (150.0, 400.0, [0, 83, 11]),            // 0x00530b
+        (400.0, 1000.0, [61, 55, 4]),           // 0x3d3704
+        (1000.0, 2000.0, [128, 84, 17]),        // 0x805411
+        (2000.0, 3200.0, [151, 122, 68]),       // 0x977944
+        (3200.0, 5000.0, [182, 181, 181]),      // 0xb6b5b5
+        (5000.0, f32::MAX, [238, 238, 238])     // 0xeeeeee
+    ].iter().map(|(min_e, max_e, color)| {
+        (
+            *min_e, 
+            *max_e, 
+            materials.add(StandardMaterial {
+                base_color: Color::srgb_u8(color[0], color[1], color[2]),
+                perceptual_roughness: 1.0,
+                cull_mode: Some(Face::Back),
+                ..default()
+            })
+        )
+    }).collect::<Vec<_>>();
+    
+    // Default material for any elevation that doesn't match our ranges
+    /*
+    let default_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.0, 0.0), // red
+        ..default()
+    });
+    */
+    
+    let debug_material = materials.add(StandardMaterial {
+        //base_color_texture: Some(images.add(scene::uv_debug_texture())),
+        base_color_texture: Some(images.add(uv_debug_texture())),
+        ..default()
+    });
+
+
+    let prism_mesh = meshes.add(Cuboid::new(0.2, 0.2, 0.4));
+    
+    // In your setup function, change to:
+    //let instances = setup_earth_elevation_points(&vertices, &e.elevation, e.height, e.width);
+    // actual_range: Ok(Doubles([-9000.0, 6000.0]))
+    //let max = 6000.0;
+    //let min = -9000.0;
+    let max = 8848.86; // mt everest
+    let min = -10909.0; // marianas trench
+    let e_scale_f = 0.2;
+
+    let lat_step = 1;
+    let lon_step = 1;
+    for i in (0..e.height).step_by(lat_step) {
+        for j in (0..e.width).step_by(lon_step) {
+            let n = i * e.width + j;
+            let vertex_pos = vertices[n];
+            
+            // Skip if data is missing or is water 
+            // (approximated as very low elevation)     
+            /*
+            if n >= e.elevation.len() || e.elevation[n] < -100 {
+                continue;
+            }
+            */
+            
+            let ev: f32 = e.elevation[n] as f32;
+            //let elevation_scale = (ev / 8000.0).max(1.0) * 0.5;
+            let es = (ev - min) / (max - min);
+
+            let elevation_scale = 1.0 + (es * e_scale_f);
+            let scaled_position = vertex_pos * elevation_scale;
+
+            let material = elevation_materials
+                .iter()
+                .find(|(min_e, max_e, _)| ev >= *min_e && ev < *max_e)
+                .map(|(_, _, material)| material.clone())
+                .unwrap_or_else(|| {
+                    println!("<{}>", ev); // Log unexpected elevations
+                    debug_material.clone()
+                });
+            
+            // Calculate direction and rotation
+            /*
+            let direction = vertex_pos.normalize();
+            let direction_rotation = Quat::from_rotation_arc(Vec3::Z, direction);
+            let x_rotation = Quat::from_rotation_x(std::f32::consts::FRAC_PI_2);
+            let rotation = direction_rotation * x_rotation;
+            */
+            // Create rotation quaternion for π/2 around x-axis
+            let rotation_x = Quat::from_rotation_x(std::f32::consts::FRAC_PI_2);
+            let rotation_y = Quat::from_rotation_y(std::f32::consts::PI);
+            let combined_rotation = rotation_x * rotation_y;
+            
+            // Apply rotation to the scaled_position vector itself
+            let rotated_position = combined_rotation.mul_vec3(scaled_position);
+            
+            // Then calculate direction using the rotated position
+            //let direction = rotated_position.normalize();
+            let direction = if rotated_position.length() > f32::EPSILON {
+                rotated_position.normalize()
+            } else {
+                Vec3::Y
+            };
+            let orientation = Quat::from_rotation_arc(Vec3::Z, direction);            
+            // Spawn entity with transform
+            commands.spawn((
+                Mesh3d(prism_mesh.clone()),
+                MeshMaterial3d(material.clone()),
+                //Transform::from_translation(vertex_pos)
+                Transform::from_translation(rotated_position)
+                    .with_rotation(orientation),
+                    //.with_scale(Vec3::new(es, es, es)),
+                MapEntity,
+            ));
+        }
+    }
+    */
 }
 
 
@@ -601,7 +836,7 @@ pub fn earth_terrain_mesh(
     mut textures: ResMut<Assets<Image>>,
     asset_server: Res<AssetServer>
 ) {
-    let e = parse_elevation(ELEVATION_DATA_L);
+    let e = parse_elevation(ELEVATION_DATA_S);
     let vertices = calculate_vertices_large(&e);
     
     let max = 8848.86; // mt everest

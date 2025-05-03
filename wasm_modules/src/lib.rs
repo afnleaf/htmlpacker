@@ -12,7 +12,7 @@ use bevy::{
     image::{Image},
     prelude::*,
 };
-//use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
+use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 mod dom;
 mod tools;
@@ -43,10 +43,10 @@ pub fn start_bevy() {
     let mut app = App::new();
 
     // embed all files in assets folder into the binary
-    // this replaces the default bevy asset plugin:5
-    //app.add_plugins(EmbeddedAssetPlugin {
-    //    mode: PluginMode::ReplaceDefault,
-    //});
+    // this replaces the default bevy asset plugin
+    app.add_plugins(EmbeddedAssetPlugin {
+        mode: PluginMode::ReplaceDefault,
+    });
     // add default plugins
     app.add_plugins(
         DefaultPlugins.set(WindowPlugin {
@@ -68,12 +68,21 @@ pub fn start_bevy() {
     //web_sys::console::log_1(&"TEST 2".into());
     app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default());
     //web_sys::console::log_1(&"TEST 3".into());
+    app.init_resource::<CurrentMap>();
+    /*
     app.add_systems(Startup,(
-                initial_setup,
-                earth::prism_earth2,
+                earth::load_map_data.before(initial_setup),
+                earth::prism_earth,
                 sun::spawn_sun_geocentrism
                 //earth::earth_terrain_mesh,
         ));
+    */
+    app.add_systems(Startup,(
+        earth::load_map_data,
+        initial_setup,
+        earth::prism_earth,
+        sun::spawn_sun_geocentrism,
+    ).chain());
     //web_sys::console::log_1(&"TEST 4".into());
     app.add_systems(PostStartup,
                 //camera::spawn_camera,
@@ -88,6 +97,8 @@ pub fn start_bevy() {
                 trackball_camera::trackball_camera_system
                     .run_if(any_with_component::<trackball_camera::TrackballState>),
                 sun::orbit_geocentrism,
+                map_update_system,
+                earth::update_earth,
                 //camera::pan_orbit_camera
                 //    .run_if(any_with_component::<camera::PanOrbitState>),
             ),
@@ -127,6 +138,65 @@ fn initial_setup(
     //action
     tools::fps_widget(&mut commands);
     sun::ambient_light(&mut commands);
+    current_map_widget(&mut commands);
+}
+
+
+#[derive(Component)]
+pub struct CurrentMapText;
+
+#[derive(Resource)]
+pub struct CurrentMap {
+    index: usize,
+}
+
+impl Default for CurrentMap {
+    fn default() -> Self {
+        Self {
+            index: 0,
+        }
+    }
+}
+
+pub fn current_map_widget(
+    commands: &mut Commands,
+) {
+    commands.spawn((
+        Text::default(),
+        Node {
+            position_type: PositionType::Absolute,
+            left: Val::Px(5.0),
+            ..default()
+        },
+    ))
+    .with_child((
+        TextSpan::default(),
+        TextFont {
+            font_size: 24.0,
+            ..default()
+        },
+        TextColor(SILVER.into()),
+        CurrentMapText,
+    ));
+}
+
+pub fn map_update_system(
+    mut current_map: ResMut<CurrentMap>,
+    kbd: Res<ButtonInput<KeyCode>>,
+    //mut query: Query<&mut TextSpan, With<CurrentMapText>>,
+    mut query: Query<&mut TextSpan, With<CurrentMapText>>,
+) {
+    for mut span in &mut query {
+        if kbd.just_pressed(KeyCode::ArrowLeft) {
+            current_map.index = (current_map.index + 1).min(108);
+        }
+        if kbd.just_pressed(KeyCode::ArrowRight) {
+            current_map.index = if current_map.index > 1 { current_map.index - 1 } else { 0 };
+        }
+        **span = format!("{}", current_map.index);
+        // render new map
+        
+    }
 }
 
 fn ground_plane(
