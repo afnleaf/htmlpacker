@@ -20,6 +20,10 @@ mod earth;
 mod sun;
 mod trackball_camera;
 mod scene;
+
+//#[cfg(not(target_family = "wasm"))]
+//use bevy_dylib;
+
 //mod camera;
 
 // entry point for WASM
@@ -137,7 +141,7 @@ fn initial_setup(
     //camera::spawn_camera(&mut commands);
     //action
     tools::fps_widget(&mut commands);
-    sun::ambient_light(&mut commands);
+    //sun::ambient_light(&mut commands);
     current_map_widget(&mut commands);
 }
 

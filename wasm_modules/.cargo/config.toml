@@ -1,0 +1,12 @@
+[build]
+jobs = 16
+
+[target.'cfg(not(target_family = "wasm"))']
+rustflags = ["--cfg=bevy_dylib"]
+
+[unstable]
+mtime-on-use = true
+#build-std = []
+
+[target.wasm32-unknown-unknown]
+#rustflags = []
