@@ -32,6 +32,7 @@ put the wasm in the base64 lil bro
 - [ ] base94 (slowww...)
 - [ ] cache api assets
 - [ ] wasm advanced
+- [ ] indexedDB during first time load, cache wasm_modules
 - ???
 
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
