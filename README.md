@@ -11,8 +11,9 @@ put the wasm in the base64 lil bro
 - [base64](https://en.wikipedia.org/wiki/Base64)
 - [base94](https://vorakl.com/articles/base94/)
 - [binary conversion](https://vorakl.com/articles/stream-encoding/)
-- [base94 - py](https://github.com/vorakl/base94)
-- [base94 - C](https://gist.github.com/iso2022jp/4054241) 👀
+- ~~[base94 - py](https://github.com/vorakl/base94)~~
+- ~~[base94 - C](https://gist.github.com/iso2022jp/4054241) 👀~~
+- [base122](https://github.com/kevinAlbs/Base122)
 
 
 ## features
@@ -29,7 +30,8 @@ put the wasm in the base64 lil bro
 - [ ] favicon all
 - [ ] lazy loading
 - [x] brotli compression
-- [ ] base94 (slowww...)
+- [ ] ~~base94 (slowww...)~~
+- [ ] base122 (in rust)
 - [ ] cache api assets
 - [ ] wasm advanced
 - [ ] indexedDB during first time load, cache wasm_modules
