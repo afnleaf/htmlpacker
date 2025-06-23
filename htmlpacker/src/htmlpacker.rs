@@ -5,6 +5,7 @@ use std::path::Path;
 use std::error::Error;
 // crates
 use maud::{DOCTYPE, html, Markup, PreEscaped};
+use url::Url;
 // use tokio;
 // use reqwest;
 //
@@ -78,23 +79,30 @@ fn favicons(icons: Vec<String>) -> Markup {
 
 // place a bunch of scripts
 fn scripts(
-    external_scripts_text: Vec<String>,
-    local_scripts_text: Vec<String>,
+    //external_scripts_text: Vec<String>,
+    //local_scripts_text: Vec<String>,
+    js: Vec<String>
 ) -> Markup {
     html! {
         // you can do for loops in here :o
+        @for script in &js {
+            script {
+                (PreEscaped(script))
+            }
+        }
+
         // external scripts
-        @for script in &external_scripts_text {
-            script {
-                (PreEscaped(script))
-            }
-        }
-        // local scripts
-        @for script in &local_scripts_text {
-            script {
-                (PreEscaped(script))
-            }
-        }
+        //@for script in &external_scripts_text {
+        //    script {
+        //        (PreEscaped(script))
+        //    }
+        //}
+        //// local scripts
+        //@for script in &local_scripts_text {
+        //    script {
+        //        (PreEscaped(script))
+        //    }
+        //}
     }
 }
 
@@ -117,8 +125,9 @@ fn binary(
 pub fn page(
     css: String,
     icons: Vec<String>,
-    external_scripts_text: Vec<String>,
-    local_scripts_text: Vec<String>,
+    js: Vec<String>,
+    //external_scripts_text: Vec<String>,
+    //local_scripts_text: Vec<String>,
     bin: Vec<Base>,
 )
 -> Markup {
@@ -129,9 +138,12 @@ pub fn page(
                 bin,
             ))
             (scripts(
-                external_scripts_text,
-                local_scripts_text,
+                js
             ))
+            //(scripts(
+            //    external_scripts_text,
+            //    local_scripts_text,
+            //))
         }
     }
 }
@@ -162,10 +174,22 @@ pub fn get_local_scripts_text(
     Ok(script_strings)
 }
 
-pub fn get_local_script(path: &Path) -> Result<String, Box<dyn Error>>{
+pub fn get_local_script(path: &Path) -> Result<String, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut text = String::new();
     file.read_to_string(&mut text)?;
+    Ok(text)
+}
+
+pub fn get_local_file(path: &Path) -> Result<String, Box<dyn Error>> {
+    let mut file = File::open(path)?;
+    let mut text = String::new();
+    file.read_to_string(&mut text)?;
+    Ok(text)
+}
+
+pub async fn get_remote_file(url: Url) -> Result<String, Box<dyn Error>> {
+    let text = reqwest::get(url).await?.text().await?;
     Ok(text)
 }
 
