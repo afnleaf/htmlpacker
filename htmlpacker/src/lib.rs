@@ -15,6 +15,8 @@ then encode it in base64
 use std::path::PathBuf;
 use url::Url;
 use std::error::Error;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // modules
 pub mod encoder;
@@ -23,11 +25,11 @@ pub mod wasmbuilder;
 //use ::htmlpacker::encoder;
 //use ::htmlpacker::htmlpacker;
 //use ::htmlpacker::wasmbuilder;
-//
 
 
 // enum that distinguishes between local and remote files
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum AssetSource {
     Local(PathBuf),
     Remote(Url),
@@ -39,7 +41,7 @@ impl Default for AssetSource {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum CompressionType {
     Brotli,
     None,
@@ -75,6 +77,49 @@ pub struct WasmModule {
     pub source: AssetSource,
     pub compression: CompressionType,
 }
+
+// yaml structs
+// not sure if this is correct
+#[derive(Debug, Deserialize)]
+struct YamlRoot {
+    pack: YamlPack,
+}
+
+#[derive(Debug, Deserialize)]
+struct YamlPack {
+    meta: Option<YamlMeta>,
+    icon: Option<YamlAssets>,
+    css: Option<YamlAssets>,
+    scripts: Option<YamlAssets>,
+    wasm: Option<HashMap<String, YamlWasmModule>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct YamlMeta {
+    title: Option<String>,
+    description: Option<String>,
+    keywords: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct YamlAssets {
+    local: Option<YamlAssetList>,
+    remote: Option<YamlAssetList>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum YamlAssetList {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+#[derive(Debug, Deserialize)]
+struct YamlWasmModule {
+    path: String,
+    id: String,
+}
+
 
 // hardcoded config for testing of config logic
 // this is so ugly
@@ -118,6 +163,11 @@ async fn set_config_hard() -> Result<PackerConfig, Box<dyn Error>> {
 
     Ok(config)
 }
+
+
+// read yaml from file
+// set config from yaml
+// need serde structs
 
 pub async fn pack() -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
