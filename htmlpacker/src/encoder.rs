@@ -66,12 +66,13 @@ pub fn encode_brotli(
     let mut compressed_buffer = Vec::new();
     println!("brotli compression"); 
     brotli::BrotliCompress(
-        &mut &buffer[..],          // Input buffer as a Read impl
-        &mut compressed_buffer,    // Output buffer as a Write impl
+        &mut &buffer[..],           // input buffer as a Read impl
+        &mut compressed_buffer,     // output buffer as a Write impl
         &brotli::enc::BrotliEncoderParams {
-            quality: 11,           // Highest quality (0-11)
-            lgwin: 22,             // Window size (recommended 20-22)
-            ..Default::default()   // Use defaults for other parameters
+            //quality: 11,          // quality (0-11)
+            quality: 9,             // try 9 as sweet spot
+            lgwin: 22,              // Window size (recommended 20-22)
+            ..Default::default() 
         }
     )?;
     println!("brotli done"); 

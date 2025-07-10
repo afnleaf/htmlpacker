@@ -12,11 +12,13 @@ then encode it in base64
 */
 
 //
-use std::path::PathBuf;
-use url::Url;
+use std::fs;
 use std::error::Error;
-use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::collections::HashMap;
+
+use url::Url;
+use serde::{Deserialize, Serialize};
 
 // modules
 pub mod encoder;
@@ -26,6 +28,8 @@ pub mod wasmbuilder;
 //use ::htmlpacker::htmlpacker;
 //use ::htmlpacker::wasmbuilder;
 
+
+// internal config structs
 
 // enum that distinguishes between local and remote files
 #[derive(Debug, Deserialize, Serialize)]
@@ -42,6 +46,7 @@ impl Default for AssetSource {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+//#[serde(rename_all = "lowercase")]
 pub enum CompressionType {
     Brotli,
     None,
@@ -55,7 +60,7 @@ impl Default for CompressionType {
 
 // these are the configuration options for the packer
 // this defines the source files that will be packed
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct PackerConfig {
     pub meta: Option<MetaConfig>,
     pub favicon: Option<Vec<AssetSource>>,
@@ -64,14 +69,14 @@ pub struct PackerConfig {
     pub wasm: Option<Vec<WasmModule>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct MetaConfig {
     pub title: Option<String>,
     pub description: Option<String>,
     pub keywords: Option<String>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct WasmModule {
     pub id: String,
     pub source: AssetSource,
@@ -80,45 +85,60 @@ pub struct WasmModule {
 
 // yaml structs
 // not sure if this is correct
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct YamlRoot {
     pack: YamlPack,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct YamlPack {
     meta: Option<YamlMeta>,
-    icon: Option<YamlAssets>,
+    favicon: Option<YamlAssets>,
     css: Option<YamlAssets>,
     scripts: Option<YamlAssets>,
     wasm: Option<HashMap<String, YamlWasmModule>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct YamlMeta {
     title: Option<String>,
     description: Option<String>,
     keywords: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+struct YamlAssets {
+    local: Option<Vec<String>>,
+    remote: Option<Vec<String>>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+struct YamlWasmModule {
+    path: String,
+    id: String,
+    #[serde(default = "default_compression")]
+    compression: String,
+}
+
+fn default_compression() -> String {
+    "none".to_string()
+}
+
+/*
+#[derive(Debug, Serialize, Deserialize)]
 struct YamlAssets {
     local: Option<YamlAssetList>,
     remote: Option<YamlAssetList>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 enum YamlAssetList {
     Single(String),
     Multiple(Vec<String>),
 }
-
-#[derive(Debug, Deserialize)]
-struct YamlWasmModule {
-    path: String,
-    id: String,
-}
+*/
 
 
 // hardcoded config for testing of config logic
@@ -164,6 +184,72 @@ async fn set_config_hard() -> Result<PackerConfig, Box<dyn Error>> {
     Ok(config)
 }
 
+// convert our parsed yaml data into internal config data
+async fn set_config_from_yaml(
+    pack: YamlPack
+) -> Result<PackerConfig, Box<dyn Error>> {
+    let mut config = PackerConfig::default();
+
+    config.meta = pack.meta.map(|m| MetaConfig {
+        title: m.title,
+        description: m.description,
+        keywords: m.keywords,
+    });
+
+    // simple assets conversion
+    config.favicon = convert_yaml_assets(pack.favicon)?;
+    config.styles = convert_yaml_assets(pack.css)?;
+    config.scripts = convert_yaml_assets(pack.scripts)?;
+
+    // wasm modules from hashmap to vec
+    config.wasm = pack.wasm.map(|wasm_map| {
+        wasm_map.into_iter()
+            .map(|(_key, module)| WasmModule {
+                id: module.id,
+                source: AssetSource::Local(PathBuf::from(module.path)),
+                //compression: CompressionType::Brotli, 
+                compression: match module.compression.as_str() {
+                    "brotli" => CompressionType::Brotli,
+                    "none" => CompressionType::None,
+                    _ => CompressionType::None,
+                }
+            })
+            .collect()
+    });
+
+    Ok(config)
+}
+
+
+fn convert_yaml_assets(
+    assets: Option<YamlAssets>
+) -> Result<Option<Vec<AssetSource>>, Box<dyn Error>> {
+    match assets {
+        None => Ok(None),
+        Some(a) => {
+            let mut sources = Vec::new();
+
+            // convert local paths
+            if let Some(local) = a.local {
+                sources.extend(
+                    local.into_iter()
+                        .map(|path| AssetSource::Local(PathBuf::from(path)))
+                );
+            }
+            
+            // convert remote urls
+            if let Some(remote) = a.remote {
+                for url_str in remote {
+                    let url = Url::parse(&url_str)
+                        .map_err(|e| format!("Invalid URL '{}': {}", url_str, e))?;
+                    sources.push(AssetSource::Remote(url));
+                }
+            }
+
+            Ok(Some(sources))
+        }
+    }
+}
 
 // read yaml from file
 // set config from yaml
@@ -174,7 +260,17 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
     wasmbuilder::compile_wasm_modules().await?;
     
     // set our hardcoded conf (later we parse from yaml)
-    let config = set_config_hard().await?;
+    //let config = set_config_hard().await?;
+    //println!("Set config");
+
+    let yaml_text = fs::read_to_string("./test.yaml")?;
+    let yaml_root: YamlRoot = serde_yaml::from_str(&yaml_text)?;
+    println!("extracted yaml");
+    println!("{:?}", yaml_text);
+
+    println!("loaded config from yaml");
+    println!("{:#?}", &yaml_root.pack);
+    let config = set_config_from_yaml(yaml_root.pack).await?;
 
     // favicon multiple but one supported rn
     // SLOP
