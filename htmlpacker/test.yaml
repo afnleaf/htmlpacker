@@ -1,8 +1,9 @@
 pack:
   meta:
-   title: "htmlpacker"
-   description: "packed by htmlpacker"
-   keywords: "hello from yaml"
+    title: "htmlpacker"
+    author: "me"
+    description: "packed by htmlpacker"
+    keywords: "hello from yaml"
   favicon:
     local: 
       - "../public/icon.svg"
@@ -17,9 +18,9 @@ pack:
       - "../wasm_modules/pkg/wasm_modules.js"
       - "../public/decoder.js"
       - "../public/app2.js"
-    remote:
-      - "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"
-      - "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TrackballControls.min.js"
+    #remote:
+    #  - "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"
+    #  - "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TrackballControls.min.js"
   wasm:
     # decoder should be default?
     decoder:

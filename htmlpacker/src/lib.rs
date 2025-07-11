@@ -17,8 +17,9 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use url::Url;
+use clap::{Parser};
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 // modules
 pub mod encoder;
@@ -72,6 +73,7 @@ pub struct PackerConfig {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct MetaConfig {
     pub title: Option<String>,
+    pub author: Option<String>,
     pub description: Option<String>,
     pub keywords: Option<String>,
 }
@@ -102,6 +104,7 @@ struct YamlPack {
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlMeta {
     title: Option<String>,
+    author: Option<String>,
     description: Option<String>,
     keywords: Option<String>,
 }
@@ -125,64 +128,19 @@ fn default_compression() -> String {
     "none".to_string()
 }
 
-/*
-#[derive(Debug, Serialize, Deserialize)]
-struct YamlAssets {
-    local: Option<YamlAssetList>,
-    remote: Option<YamlAssetList>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum YamlAssetList {
-    Single(String),
-    Multiple(Vec<String>),
-}
-*/
-
-
-// hardcoded config for testing of config logic
-// this is so ugly
-async fn set_config_hard() -> Result<PackerConfig, Box<dyn Error>> {
-    let mut config = PackerConfig::default();
+// clap  
+#[derive(Parser)]
+#[command(name = "htmlpacker")]
+#[command(about = "Pack web assets into a single HTML file")]
+struct Cli {
+    /// path to the YAML configuration file
+    config: PathBuf,
     
-    // HTML Metadata
-    // should favicon be part of this?
-    config.meta = Some(MetaConfig {
-        title: Some("htmlpacker".to_string()),
-        // we could add a system time with chrono for when it was packed (default)
-        description: Some("packed by htmlpacker".to_string()),
-        ..Default::default()
-    });
-
-    config.favicon = Some(vec![AssetSource::Local(PathBuf::from("../public/icon.svg"))]);
-
-    // let normalize_css = Url::parse("https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css")?;
-    // config.styles = Some(vec![AssetSource::Remote(normalize_css)]);
-    config.styles = Some(vec![]);
-
-    let mut scripts = Vec::new();
-    scripts.push(AssetSource::Local(PathBuf::from("../wasm_decoder/pkg/wasm_decoder.js",)));
-    scripts.push(AssetSource::Local(PathBuf::from("../wasm_modules/pkg/wasm_modules.js",)));
-    scripts.push(AssetSource::Local(PathBuf::from("../public/decoder.js")));
-    scripts.push(AssetSource::Local(PathBuf::from("../public/app2.js")));
-    config.scripts = Some(scripts);
-
-    let mut wasm_modules = Vec::new();
-    wasm_modules.push(WasmModule {
-        id: "bin-wasm-decoder".to_string(),
-        source: AssetSource::Local(PathBuf::from("../wasm_decoder/pkg/wasm_decoder_bg.wasm",)),
-        compression: CompressionType::None,
-    });
-    wasm_modules.push(WasmModule {
-        id: "bin-wasm".to_string(),
-        source: AssetSource::Local(PathBuf::from("../wasm_modules/pkg/wasm_modules_bg.wasm",)),
-        compression: CompressionType::Brotli,
-    });
-    config.wasm = Some(wasm_modules);
-
-    Ok(config)
+    /// output file path (defaults to ./index.html)
+    #[arg(short, long, default_value = "./index.html")]
+    output: PathBuf,
 }
+
 
 // convert our parsed yaml data into internal config data
 async fn set_config_from_yaml(
@@ -192,6 +150,7 @@ async fn set_config_from_yaml(
 
     config.meta = pack.meta.map(|m| MetaConfig {
         title: m.title,
+        author: m.author,
         description: m.description,
         keywords: m.keywords,
     });
@@ -220,7 +179,7 @@ async fn set_config_from_yaml(
     Ok(config)
 }
 
-
+// from YamlAsset strings to specific AssetSource
 fn convert_yaml_assets(
     assets: Option<YamlAssets>
 ) -> Result<Option<Vec<AssetSource>>, Box<dyn Error>> {
@@ -258,19 +217,20 @@ fn convert_yaml_assets(
 pub async fn pack() -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
     wasmbuilder::compile_wasm_modules().await?;
-    
-    // set our hardcoded conf (later we parse from yaml)
-    //let config = set_config_hard().await?;
-    //println!("Set config");
 
-    let yaml_text = fs::read_to_string("./test.yaml")?;
+    // parse CLI
+    let cli = Cli::parse();
+    println!("Config: {}", cli.config.display());
+    println!("Output: {}", cli.output.display());
+
+    //let yaml_text = fs::read_to_string("./test.yaml")?;
+    let yaml_text = fs::read_to_string(cli.config)?;
     let yaml_root: YamlRoot = serde_yaml::from_str(&yaml_text)?;
     println!("extracted yaml");
-    println!("{:?}", yaml_text);
-
-    println!("loaded config from yaml");
-    println!("{:#?}", &yaml_root.pack);
+    //println!("{:?}", yaml_text);
+    //println!("{:#?}", &yaml_root.pack);
     let config = set_config_from_yaml(yaml_root.pack).await?;
+    println!("loaded config from yaml");
 
     // favicon multiple but one supported rn
     // SLOP
@@ -316,7 +276,7 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
     );
 
     let html = markup.into_string();
-    htmlpacker::save_html(html)?;
+    htmlpacker::save_html(html, cli.output)?;
 
     Ok(())
 }
@@ -394,6 +354,51 @@ fn get_wasm(
 }
 
 /*
+    // set our hardcoded conf (later we parse from yaml)
+    //let config = set_config_hard().await?;
+    //println!("Set config");
+// hardcoded config for testing of config logic
+// this is so ugly
+async fn set_config_hard() -> Result<PackerConfig, Box<dyn Error>> {
+    let mut config = PackerConfig::default();
+    
+    // HTML Metadata
+    // should favicon be part of this?
+    config.meta = Some(MetaConfig {
+        title: Some("htmlpacker".to_string()),
+        // we could add a system time with chrono for when it was packed (default)
+        description: Some("packed by htmlpacker".to_string()),
+        ..Default::default()
+    });
+
+    config.favicon = Some(vec![AssetSource::Local(PathBuf::from("../public/icon.svg"))]);
+
+    // let normalize_css = Url::parse("https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css")?;
+    // config.styles = Some(vec![AssetSource::Remote(normalize_css)]);
+    config.styles = Some(vec![]);
+
+    let mut scripts = Vec::new();
+    scripts.push(AssetSource::Local(PathBuf::from("../wasm_decoder/pkg/wasm_decoder.js",)));
+    scripts.push(AssetSource::Local(PathBuf::from("../wasm_modules/pkg/wasm_modules.js",)));
+    scripts.push(AssetSource::Local(PathBuf::from("../public/decoder.js")));
+    scripts.push(AssetSource::Local(PathBuf::from("../public/app2.js")));
+    config.scripts = Some(scripts);
+
+    let mut wasm_modules = Vec::new();
+    wasm_modules.push(WasmModule {
+        id: "bin-wasm-decoder".to_string(),
+        source: AssetSource::Local(PathBuf::from("../wasm_decoder/pkg/wasm_decoder_bg.wasm",)),
+        compression: CompressionType::None,
+    });
+    wasm_modules.push(WasmModule {
+        id: "bin-wasm".to_string(),
+        source: AssetSource::Local(PathBuf::from("../wasm_modules/pkg/wasm_modules_bg.wasm",)),
+        compression: CompressionType::Brotli,
+    });
+    config.wasm = Some(wasm_modules);
+
+    Ok(config)
+}
 pub async fn pack1() -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
     wasmbuilder::compile_wasm_modules().await?;
@@ -483,5 +488,19 @@ pub async fn pack1() -> Result<(), Box<dyn Error>> {
     htmlpacker::save_html(html)?;
 
     Ok(())
+}
+*/
+/*
+#[derive(Debug, Serialize, Deserialize)]
+struct YamlAssets {
+    local: Option<YamlAssetList>,
+    remote: Option<YamlAssetList>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum YamlAssetList {
+    Single(String),
+    Multiple(Vec<String>),
 }
 */

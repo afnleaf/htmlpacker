@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::fs;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::error::Error;
 // crates
 use maud::{DOCTYPE, html, Markup, PreEscaped};
@@ -205,14 +205,22 @@ pub async fn get_css_string(
 }
 
 // save our string to an html file
-pub fn save_html(html: String) -> Result<(), Box<dyn Error>> {
-    // create the directory and all its parent directories if they don't exist
+pub fn save_html(
+    html: String,
+    output: PathBuf,
+) -> Result<(), Box<dyn Error>> {
+    /*
     let output_dir = Path::new("../output");
     fs::create_dir_all(output_dir)?;
-
-    let mut file = File::create(output_dir.join("index.html"))?;
-
+    */
+    // create the directory and all its parent directories if they don't exist
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    //let mut file = File::create(output_dir.join("index.html"))?;
+    let mut file = File::create(output)?;
     file.write_all(html.as_bytes())?;
+    
     Ok(())
 }
 
