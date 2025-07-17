@@ -16,7 +16,8 @@ pack:
     local:
       - "../wasm_decoder/pkg/wasm_decoder.js"
       - "../wasm_modules/pkg/wasm_modules.js"
-      - "../public/decoder.js"
+      - "../public/decoder2.js"
+      - "../public/loading.js"
       - "../public/app2.js"
     #remote:
     #  - "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"
