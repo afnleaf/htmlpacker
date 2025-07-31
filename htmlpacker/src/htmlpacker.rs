@@ -111,7 +111,7 @@ fn binary(
 ) -> Markup {
     html! {
         @for b in &bin {
-            pre id=(b.id) style="display: none;" {
+            pre id=(b.id) hash=(b.hash) style="display: none;" {
                 (b.text)
             }
         }

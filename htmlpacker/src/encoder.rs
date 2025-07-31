@@ -21,16 +21,20 @@ use std::io::Read;
 use std::error::Error;
 use base64::prelude::*;
 
+use sha2::{Sha256, Digest};
+
 #[derive(Debug)]
 pub struct Base {
     pub id: String, // identifier
+    pub hash: String, //sha-256 hash of the text as bytes
     pub text: String, // text content
 }
 
 impl Base {
-    pub fn new(id: String, text: String) -> Self {
+    pub fn new(id: String, hash: String, text: String) -> Self {
         Base {
             id: id,
+            hash: hash,
             text: text,
         }
     }
@@ -50,9 +54,13 @@ pub fn encode_base64(
     id: &str,
 ) -> Result<Base, Box<dyn Error>> {
     let buffer = get_file_bytes(file_path)?;
+    let hash = Sha256::digest(&buffer);
+    let hash_string = format!("{:x}", hash);
+    //println!("hash {:?}\nstring: {}", hash, hash_string);
     let encoded = BASE64_STANDARD.encode(&buffer);
     Ok(Base::new(
         String::from(id),
+        hash_string,
         encoded
     ))
 }
@@ -85,10 +93,13 @@ pub fn encode_brotli_base64(
     id: &str,
 ) -> Result<Base, Box<dyn Error>> {
     let buffer = get_file_bytes(file_path)?;
+    let hash = Sha256::digest(&buffer);
+    let hash_string = format!("{:x}", hash);
     let compressed_buffer = encode_brotli(&buffer)?;
     let encoded = BASE64_STANDARD.encode(&compressed_buffer);
     Ok(Base::new(
         String::from(id),
+        hash_string,
         encoded
     ))
 }

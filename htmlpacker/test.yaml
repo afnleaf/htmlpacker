@@ -6,7 +6,7 @@ pack:
     keywords: "hello from yaml"
   favicon:
     local: 
-      - "../public/icon.svg"
+      - "./core/icon.svg"
     #remote:
   css:
     #local:
@@ -16,9 +16,9 @@ pack:
     local:
       - "../wasm_decoder/pkg/wasm_decoder.js"
       - "../wasm_modules/pkg/wasm_modules.js"
-      - "../public/decoder2.js"
-      - "../public/loading.js"
-      - "../public/app2.js"
+      - "./core/decoder.js"
+      - "./core/loading.js"
+      - "./core/app.js"
     #remote:
     #  - "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"
     #  - "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/TrackballControls.min.js"
@@ -30,6 +30,6 @@ pack:
       compression: "none"
     module:
       path: "../wasm_modules/pkg/wasm_modules_bg.wasm"
-      id: "bin-wasm"
+      id: "bin-wasm-app"
       compression: "brotli"
 

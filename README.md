@@ -25,16 +25,18 @@ put the wasm in the base64 lil bro
 - [x] wasm bevy
 - [x] loading screen simple
 - [ ] loading screen advanced
+- [x] indexedDB during first time load, cache wasm_modules as u8
+- [ ] library api
+- [ ] cli app
 - [x] metadata
 - [x] favicon svg
 - [ ] favicon all
 - [ ] lazy loading
 - [x] brotli compression
+- [ ] wasm advanced
+- [ ] mcp
 - [ ] ~~base94 (slowww...)~~
 - [ ] base122 (in rust)
-- [ ] cache api assets
-- [ ] wasm advanced
-- [ ] indexedDB during first time load, cache wasm_modules
 - ???
 
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.
@@ -57,6 +59,19 @@ wasm: `wasm-pack build --target no-modules`
 
 ## notes
 what computer you compile on will leak bevy crate stuff, how to prevent?
+
+```js
+const wasmModule = await WebAssembly.compile(wasmBytes);
+wasmBytes = wasmModule;
+
+//Error:  DataCloneError: Failed to execute 'put' on 'IDBObjectStore': A WebAssembly.Module can not be serialized for storage.
+```
+- browser protects against caching compiled output
+- would cause errors if wasm runtime and cached output mismatch
+
+
+
+
 
 
 
