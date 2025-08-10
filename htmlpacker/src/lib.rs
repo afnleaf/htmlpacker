@@ -222,7 +222,7 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
     
     // make sure to compile our wasm binaries and js glue first
     // how to disable this if already done?
-    //wasmbuilder::compile_wasm_modules().await?;
+    wasmbuilder::compile_wasm_modules().await?;
 
 
     //let yaml_text = fs::read_to_string("./test.yaml")?;

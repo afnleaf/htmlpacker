@@ -105,9 +105,11 @@ impl Default for TrackballSettings {
     }
 }
 
+use bevy::render::view::{NoIndirectDrawing};
+
 pub fn spawn_trackball_camera(mut commands: Commands) {
     let mut camera = TrackballCameraBundle::default();
-    commands.spawn(camera);
+    commands.spawn((camera, NoIndirectDrawing));
 }
 
 pub fn trackball_camera_system(

@@ -27,13 +27,14 @@ put the wasm in the base64 lil bro
 - [ ] loading screen advanced
 - [x] indexedDB during first time load, cache wasm_modules as u8
 - [ ] library api
-- [ ] cli app
+- [ ] skip compilation
 - [x] metadata
 - [x] favicon svg
 - [ ] favicon all
 - [ ] lazy loading
 - [x] brotli compression
 - [ ] wasm advanced
+- [ ] cli tool
 - [ ] mcp
 - [ ] ~~base94 (slowww...)~~
 - [ ] base122 (in rust)

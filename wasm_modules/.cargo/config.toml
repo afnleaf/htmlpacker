@@ -8,5 +8,8 @@ rustflags = ["--cfg=bevy_dylib"]
 mtime-on-use = true
 #build-std = []
 
-[target.wasm32-unknown-unknown]
+#[target.wasm32-unknown-unknown]
 #rustflags = []
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "panic=abort"]

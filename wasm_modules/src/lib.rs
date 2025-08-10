@@ -19,7 +19,7 @@ mod tools;
 mod earth;
 mod sun;
 mod trackball_camera;
-mod scene;
+mod instancetest;
 
 //#[cfg(not(target_family = "wasm"))]
 //use bevy_dylib;
@@ -65,6 +65,8 @@ pub fn start_bevy() {
             ..default()
         }),
     );
+
+    app.add_plugins(instancetest::CustomMaterialPlugin);
     
     //web_sys::console::log_1(&"TEST 1".into());
     // add rest
@@ -82,10 +84,14 @@ pub fn start_bevy() {
         ));
     */
     app.add_systems(Startup,(
-        earth::load_map_data,
+        earth::load_elevation_buffers,
+        earth::generate_static_geometry,
         initial_setup,
-        earth::prism_earth,
+        //earth::prism_earth,
+        //earth::earth_terrain_mesh,
+        //earth::spawn_static_geometry,
         sun::spawn_sun_geocentrism,
+        instancetest::setup,
     ).chain());
     //web_sys::console::log_1(&"TEST 4".into());
     app.add_systems(PostStartup,
@@ -102,7 +108,7 @@ pub fn start_bevy() {
                     .run_if(any_with_component::<trackball_camera::TrackballState>),
                 sun::orbit_geocentrism,
                 map_update_system,
-                earth::update_earth,
+                //earth::update_earth,
                 //camera::pan_orbit_camera
                 //    .run_if(any_with_component::<camera::PanOrbitState>),
             ),
@@ -112,15 +118,8 @@ pub fn start_bevy() {
     //web_sys::console::log_1(&"IDK WHAT ISNT WORKING".into());
 }
 
-/*
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut images: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
-) {
-*/
+
+// set some base stuff in the scene
 fn initial_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -128,10 +127,6 @@ fn initial_setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    //scene::spawn_fox(&mut commands, asset_server);
-    //scene::spawn_shapes(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
-    //scene::render_earths(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
-    
     // ground -----------------------------------------------------------------
     //ground_plane(&mut commands, &mut meshes, &mut materials);
     
@@ -141,7 +136,7 @@ fn initial_setup(
     //camera::spawn_camera(&mut commands);
     //action
     tools::fps_widget(&mut commands);
-    //sun::ambient_light(&mut commands);
+    sun::ambient_light(&mut commands);
     current_map_widget(&mut commands);
 }
 
@@ -215,3 +210,15 @@ fn ground_plane(
     ));
 }
 
+
+
+
+
+
+
+
+
+
+    //scene::spawn_fox(&mut commands, asset_server);
+    //scene::spawn_shapes(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);
+    //scene::render_earths(&mut commands, &mut meshes, &mut images, &mut materials, asset_server);

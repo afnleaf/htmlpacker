@@ -122,7 +122,8 @@ pub fn orbit_geocentrism(
 pub fn ambient_light(commands: &mut Commands) {
     commands.insert_resource(AmbientLight {
         //color: WHITE.into(),
-        brightness: 250.0,
+        //brightness: 250.0,
+        brightness: 1400.0,
         ..default()
     });
 }
