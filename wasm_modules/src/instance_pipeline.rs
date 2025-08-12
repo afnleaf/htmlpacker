@@ -55,7 +55,8 @@ use crate::mapupdate::CurrentMap;
 // draw -> render using the shader
 
 // in assets subdirectory
-const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
+//const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/test.wgsl";
 
 // custom render pipeline plugin
 pub struct CustomMaterialPlugin;

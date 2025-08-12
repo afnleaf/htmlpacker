@@ -11,6 +11,11 @@
 // uv mapping is a process of telling the GPU how a 2d texture wraps a 3d mesh
 
 #import bevy_pbr::mesh_functions::{get_world_from_local, mesh_position_local_to_clip}
+// Import Bevy's lighting and view bindings
+#import bevy_pbr::mesh_view_bindings::{lights, view}
+#import bevy_pbr::lighting::{point_light, spot_light, directional_light}
+#import bevy_pbr::mesh_view_bindings::globals
+
 
 @group(2) @binding(0) var<storage, read> elevation_buffer: array<i32>;
 // map_id, points_per_map, padding, padding

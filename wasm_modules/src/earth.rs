@@ -180,15 +180,15 @@ pub fn setup_instance_geometries(
             // Calculate latitude-based scale
             // smaller at poles, larger at equator
             // cos(lat) gives us 1.0 at equator, ~0 at poles
-            /*
+            
             let lat_scale = lat_rad.cos() as f32;  
-            let base_scale = 0.67;
-            let min_scale = 0.55;
+            let base_scale = 0.75;
+            let min_scale = 0.6;
             let scaled = base_scale * lat_scale;
             let scale = scaled.max(min_scale);
-            */
-            let lat_factor = lat_rad.cos().abs().sqrt() as f32;
-            let scale = 0.67 * (0.7 + 0.3 * lat_factor);
+            
+            //let lat_factor = lat_rad.cos().abs().sqrt() as f32;
+            //let scale = 0.67 * (0.7 + 0.3 * lat_factor);
 
             (0..width).map(move |j| {
                 // Map j from [0, width-1] to [-180, 180] degrees (longitude)
