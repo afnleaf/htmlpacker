@@ -1,3 +1,8 @@
+/*
+sun.rs
+
+the code that spawns and orbits the sun
+*/
 use bevy::{
     color::palettes::css::*,
     pbr::{
@@ -119,7 +124,9 @@ pub fn orbit_geocentrism(
 }
 
 
-pub fn ambient_light(commands: &mut Commands) {
+pub fn ambient_light(
+    mut commands: &mut Commands,
+) {
     commands.insert_resource(AmbientLight {
         //color: WHITE.into(),
         //brightness: 250.0,

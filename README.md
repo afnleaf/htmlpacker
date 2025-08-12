@@ -38,6 +38,8 @@ put the wasm in the base64 lil bro
 - [ ] mcp
 - [ ] ~~base94 (slowww...)~~
 - [ ] base122 (in rust)
+- [x] instanced mesh custom render shader pipeline
+- [ ] auto webgpu turn on -> webgl2 fallback (storage buffer = bad)
 - ???
 
 With these current implemented features, we have a solid backbone for the htmlpacker. future iterations will depend on optimized base94 encode/decode. Right now it is too slow to be practical.

@@ -12,6 +12,10 @@
 
 #import bevy_pbr::mesh_functions::{get_world_from_local, mesh_position_local_to_clip}
 
+@group(2) @binding(0) var<storage, read> elevation_buffer: array<i32>;
+// map_id, points_per_map, padding, padding
+@group(2) @binding(1) var<uniform> map_selection: vec4<u32>;
+
 // buffer goes in and buffer goes out
 
 // layout of the incoming vertex data
@@ -25,6 +29,7 @@ struct Vertex {
     @location(3) i_pos_scale: vec4<f32>,  // xyz = position, w = scale
     @location(4) i_rotation: vec4<f32>,   // quaternion (xyzw)
     @location(5) i_color: vec4<f32>,
+    @location(6) elevation_index: u32,
 };
 
 //layout of the outgoing vertex data
@@ -50,6 +55,35 @@ fn apply_quaternion_rotation(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
     return v + 2.0 * (uv * qw + uuv);
 }
 
+fn getColorFromElevation(elevation: f32) -> vec4<f32> {
+    if (elevation < -6000.0) {
+        return vec4<f32>(8.0 / 255.0, 14.0 / 255.0, 48.0 / 255.0, 1.0); // 0x080e30
+    } else if (elevation < -3000.0) {
+        return vec4<f32>(31.0 / 255.0, 45.0 / 255.0, 71.0 / 255.0, 1.0); // 0x1f2d47
+    } else if (elevation < -150.0) {
+        return vec4<f32>(42.0 / 255.0, 60.0 / 255.0, 99.0 / 255.0, 1.0); // 0x2a3c63
+    } else if (elevation < -50.0) {
+        return vec4<f32>(52.0 / 255.0, 75.0 / 255.0, 117.0 / 255.0, 1.0); // 0x344b75
+    } else if (elevation < 0.0001) {
+        return vec4<f32>(87.0 / 255.0, 120.0 / 255.0, 179.0 / 255.0, 1.0); // 0x5778b3
+    } else if (elevation < 75.0) {
+        return vec4<f32>(79.0 / 255.0, 166.0 / 255.0, 66.0 / 255.0, 1.0);  // 0x4fa642
+    } else if (elevation < 150.0) {
+        return vec4<f32>(52.0 / 255.0, 122.0 / 255.0, 42.0 / 255.0, 1.0);  // 0x347a2a
+    } else if (elevation < 400.0) {
+        return vec4<f32>(0.0 / 255.0, 83.0 / 255.0, 11.0 / 255.0, 1.0);   // 0x00530b
+    } else if (elevation < 1000.0) {
+        return vec4<f32>(61.0 / 255.0, 55.0 / 255.0, 4.0 / 255.0, 1.0);    // 0x3d3704
+    } else if (elevation < 2000.0) {
+        return vec4<f32>(128.0 / 255.0, 84.0 / 255.0, 17.0 / 255.0, 1.0);   // 0x805411
+    } else if (elevation < 3200.0) {
+        return vec4<f32>(151.0 / 255.0, 122.0 / 255.0, 68.0 / 255.0, 1.0);  // 0x977944
+    } else if (elevation < 5000.0) {
+        return vec4<f32>(182.0 / 255.0, 181.0 / 255.0, 181.0 / 255.0, 1.0); // 0xb6b5b5
+    } else {
+        return vec4<f32>(238.0 / 255.0, 238.0 / 255.0, 238.0 / 255.0, 1.0); // 0xeeeeee
+    }
+}
 
 // first we get the prism's local vertex position (a point on the prism)
 // apply the rotation to that vertex position
@@ -62,32 +96,49 @@ fn apply_quaternion_rotation(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
 // store world position for lighting calculations
 // pass instance color and transformed normal to the fragment shader
 // return out buffer
+
 @vertex
 fn vertex(vertex: Vertex) -> CustomVertexOutput {
     var out: CustomVertexOutput;
-    
+
+    let global_index = 
+    map_selection.x * (map_selection.y) + vertex.elevation_index;
+    //let elevation_meters = f32(elevation_buffer[global_index]) * 0.001;
+    let elevation_meters = f32(elevation_buffer[global_index]);
+
+    let base_sphere_position = vertex.i_pos_scale.xyz;
+    let sphere_radius = length(base_sphere_position);
+    let sphere_direction = normalize(base_sphere_position);
+
+    let elevation_world_units = elevation_meters * 0.00004;
+    let elevated_instance_pos = 
+    sphere_direction * (sphere_radius + elevation_world_units);
+
     let rotated_position = 
-        apply_quaternion_rotation(vertex.i_rotation, vertex.position);
-    
+    apply_quaternion_rotation(vertex.i_rotation, vertex.position);
     let scaled_position = rotated_position * vertex.i_pos_scale.w;
 
-    let instance_position = scaled_position + vertex.i_pos_scale.xyz;
+    let final_position = scaled_position + elevated_instance_pos;
     
     out.clip_position = mesh_position_local_to_clip(
         get_world_from_local(0u),
-        vec4<f32>(instance_position, 1.0)
+        vec4<f32>(final_position, 1.0)
     );
     
     let rotated_normal = 
-        apply_quaternion_rotation(vertex.i_rotation, vertex.normal);
+    apply_quaternion_rotation(vertex.i_rotation, vertex.normal);
     
     let world_from_local = get_world_from_local(0u);
-    out.world_normal = normalize(
-        (world_from_local * vec4<f32>(rotated_normal, 0.0)).xyz);
+    out.world_normal = 
+    normalize((world_from_local * vec4<f32>(rotated_normal, 0.0)).xyz);
     
-    out.world_position = (world_from_local * vec4<f32>(instance_position, 1.0)).xyz;
+    out.world_position = 
+    (world_from_local * vec4<f32>(final_position, 1.0)).xyz;
+
+    let color = getColorFromElevation(elevation_meters);
     
-    out.color = vertex.i_color;
+    //out.color = vertex.i_color;
+    out.color = color;
     
     return out;
 }
@@ -98,6 +149,7 @@ fn vertex(vertex: Vertex) -> CustomVertexOutput {
 // calculates simple lighting and returns final "lit" pixel color
 @fragment
 fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    
     let light_dir = normalize(vec3<f32>(1.0, 1.0, 0.5));
     let ambient = 0.3;
     
@@ -106,6 +158,7 @@ fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
     
     let lit_color = in.color.rgb * (ambient + diffuse);
     
-    return vec4<f32>(lit_color, in.color.a);
+    //return vec4<f32>(lit_color, in.color.a);
+    return vec4<f32>(in.color.rgb, in.color.a);
 }
 

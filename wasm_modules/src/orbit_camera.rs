@@ -1,6 +1,8 @@
 /* 
-This is an experimental LLM generated file
-I took https://www.npmjs.com/package/three-trackballcontrols?activeTab=code
+orbit_camera.rs
+
+This is an experimental LLM generated file. (I have since done minor refactor)
+I took https://www.npmjs.com/package/three-orbitcontrols?activeTab=code
 + https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
 then put it into an LLM asking for Rust code. Honestly, the results are subpar.
 Tried Sonnet 3.7 Thinking, Gemini 2.5 Pro, Grok 3 Think
@@ -13,24 +15,27 @@ Basically the ideal use case for an LLM. Pure vibe coding.
 
 
 // Grok 3 version
-// I fix width when too long
-// also added the R to reset
-use bevy::prelude::*;
-use bevy::input::mouse::{
-    MouseButton, MouseMotion, MouseScrollUnit, MouseWheel};
-use bevy::window::{Window, PrimaryWindow};
+// I fix width when too long, also added the R to reset
+use bevy::{
+    prelude::*,
+    input::mouse::{
+        MouseButton, MouseMotion, MouseScrollUnit, MouseWheel
+    },
+    render::view::{NoIndirectDrawing},
+    window::{Window, PrimaryWindow},
+};
 
-// Bundle to spawn our trackball camera easily
+// Bundle to spawn our orbit camera easily
 #[derive(Bundle, Default)]
-pub struct TrackballCameraBundle {
+pub struct OrbitCameraBundle {
     pub camera: Camera3d,
-    pub state: TrackballState,
-    pub settings: TrackballSettings,
+    pub state: OrbitState,
+    pub settings: OrbitSettings,
 }
 
-// The internal state of the trackball controller
+// The internal state of the orbit controller
 #[derive(Component)]
-pub struct TrackballState {
+pub struct OrbitState {
     pub target: Vec3,        // The point being orbited around
     pub position: Vec3,      // Current camera position
     pub up: Vec3,            // Camera's up vector
@@ -43,15 +48,21 @@ pub struct TrackballState {
     pub last_rotation_angle: f32,  // For rotation damping
 }
 
-impl Default for TrackballState {
+
+impl OrbitState {
+    const DEFAULT_DISTANCE: f32 = 22.0;
+    const DEFAULT_POSITION: Vec3 = Vec3::new(0.0, 0.0, Self::DEFAULT_DISTANCE);
+}
+
+impl Default for OrbitState {
     fn default() -> Self {
-        TrackballState {
+        OrbitState {
             target: Vec3::ZERO,
-            position: Vec3::new(0.0, 0.0, 50.0),
+            position: Self::DEFAULT_POSITION,
             up: Vec3::Y,
             rotation_quat: Quat::IDENTITY,
-            distance: 50.0,
-            last_position: Vec3::new(0.0, 0.0, 50.0),
+            distance: Self::DEFAULT_DISTANCE,
+            last_position: Self::DEFAULT_POSITION,
             moving: false,
             velocity: Vec3::ZERO,
             last_rotation_axis: None,
@@ -60,9 +71,9 @@ impl Default for TrackballState {
     }
 }
 
-// The configuration of the trackball controller
+// The configuration of the orbit controller
 #[derive(Component)]
-pub struct TrackballSettings {
+pub struct OrbitSettings {
     pub rotate_speed: f32,
     pub zoom_speed: f32,
     pub pan_speed: f32,
@@ -79,9 +90,9 @@ pub struct TrackballSettings {
     pub keys: [KeyCode; 4],
 }
 
-impl Default for TrackballSettings {
+impl Default for OrbitSettings {
     fn default() -> Self {
-        TrackballSettings {
+        OrbitSettings {
             rotate_speed: 1.0,
             zoom_speed: 3.5,
             pan_speed: 0.1,
@@ -105,21 +116,19 @@ impl Default for TrackballSettings {
     }
 }
 
-use bevy::render::view::{NoIndirectDrawing};
-
-pub fn spawn_trackball_camera(mut commands: Commands) {
-    let mut camera = TrackballCameraBundle::default();
+pub fn spawn_orbit_camera(mut commands: Commands) {
+    let mut camera = OrbitCameraBundle::default();
     commands.spawn((camera, NoIndirectDrawing));
 }
 
-pub fn trackball_camera_system(
+pub fn orbit_camera_system(
     time: Res<Time>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     kbd: Res<ButtonInput<KeyCode>>,
     mut evr_motion: EventReader<MouseMotion>,
     mut evr_scroll: EventReader<MouseWheel>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    mut q_camera: Query<(&TrackballSettings, &mut TrackballState, &mut Transform)>,
+    mut q_camera: Query<(&OrbitSettings, &mut OrbitState, &mut Transform)>,
 ) {
     // Get the primary window
     let window = primary_window_query.single();
@@ -141,7 +150,7 @@ pub fn trackball_camera_system(
     for (settings, mut state, mut transform) in &mut q_camera {
         // Reset check
         if kbd.pressed(settings.keys[3]) {
-            *state = TrackballState::default();
+            *state = OrbitState::default();
         }
 
         // Input states
@@ -274,32 +283,3 @@ pub fn trackball_camera_system(
     }
 }
 
-        
-            
-        /*
-* Old pan did not update each frame
-        // **Pan**
-        if pan_active && mouse_delta != Vec2::ZERO {
-            let pan_scale = state.distance * settings.pan_speed;
-            let right = transform.right();
-            let up = transform.up();
-            let mouse_change = Vec2::new(-mouse_delta.x * 0.01, mouse_delta.y * 0.01);
-            let pan_delta = (right * mouse_change.x + up * mouse_change.y) * pan_scale;
-
-            if settings.static_moving {
-                state.target += pan_delta;
-            } else {
-                state.velocity += pan_delta;
-            }
-        }
-
-        // **Damping for Pan**
-        if !settings.static_moving && !state.moving && state.velocity.length_squared() > 0.000001 {
-            let velocity = state.velocity; // Clone velocity to avoid borrowing issue
-            state.target += velocity;
-            state.velocity *= 1.0 - settings.damping_factor;
-            if state.velocity.length_squared() < 0.000001 {
-                state.velocity = Vec3::ZERO;
-            }
-        }
-        */

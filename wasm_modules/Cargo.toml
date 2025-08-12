@@ -19,7 +19,6 @@ js-sys = "0.3.77"
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "0.1.7"
-#bevy_dylib = { version = "0.15.0-rc.3", optional = true }
 bevy_embedded_assets = "0.13.0" # for 16.0
 bytemuck = { version = "1.15", features = ["derive"] }
 #bevy_embedded_assets = "0.12.0" # for 15.3
@@ -29,9 +28,9 @@ bytemuck = { version = "1.15", features = ["derive"] }
 #rand = "0.9.0"
 #getrandom = { version = "0.3.2", features = ["wasm_js"] }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
+#[target.'cfg(not(target_family = "wasm"))'.dependencies]
 #bevy_dylib = { version = "0.15.0-rc.3" }
-bevy_dylib = { version = "0.16.1" }
+#bevy_dylib = { version = "0.16.1" }
 
 [dependencies.bevy]
 #version = "0.15.3"
@@ -45,11 +44,12 @@ features = [
     "bevy_pbr",             # 3D render
     "bevy_text",            # text rendering
     "bevy_ui",              # UI system
-    "webgl2",               # WebGL2 support (crucial for web)
+    #"webgl2",               # WebGL2 support (crucial for web)
+    "webgpu",
     "tonemapping_luts",
     "default_font",
-    "png",                  # Image support
-    "bevy_image",           # load images
+    #"png",                  # Image support
+    #"bevy_image",           # load images
     #"bevy_gltf",
     #"animation",
     #"bevy_sprite",         # 2D support
