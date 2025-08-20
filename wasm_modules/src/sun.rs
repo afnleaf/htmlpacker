@@ -12,6 +12,7 @@ use bevy::{
     },
     render::{
         mesh::*,
+        extract_component::{ExtractComponent},
     },
     prelude::*,
 };
@@ -35,8 +36,32 @@ Illuminance (lux)	Surfaces illuminated by
 32,000–100,000	Direct sunlight
 */
 
+
+// refactor the sun
+// there is functionality that we need to change here
+// first, managing Sun position, for lighting shader
+// second, moving away from geocentris
+// is the Star a component or an Entity?
+// how can an Entity have a star component?
+// is center the position in vec3?
+// why do our instances not interact with this light?
+//
+
 #[derive(Component)]
 pub struct Star;
+
+//#[derive(Resource, Default, Clone, ExtractResource)]
+//pub struct CurrentMap {
+//    pub index: usize,
+//}
+//need position and light direction?
+//or is light direction calced, from pos to 0,0,0?
+#[derive(Default, Clone, Component, ExtractComponent)]
+pub struct SunPosition {
+    pub pos: Vec3
+
+}
+
 
 #[derive(Component, Clone)]
 pub struct Orbit {
@@ -82,7 +107,8 @@ pub fn spawn_sun_geocentrism(
         orbit.clone(),
     ));
 
-    // sphere at the same position as physical sun
+    // sphere at the same position as real sun relative to our solar system size
+    // earth is 6.738
     commands.spawn((
         Mesh3d(meshes.add(Sphere::new(696.34).mesh().uv(32, 18))),
         MeshMaterial3d(materials.add(StandardMaterial {

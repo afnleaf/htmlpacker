@@ -16,7 +16,6 @@ use bevy::{
         SetMeshBindGroup, SetMeshViewBindGroup,
     },
     render::{
-        MainWorld,
         extract_component::ExtractComponentPlugin,
         extract_resource::ExtractResourcePlugin,
         mesh::{
@@ -54,20 +53,27 @@ use crate::mapupdate::CurrentMap;
 // queue -> what should be drawn and how using pipeline with draw function 
 // draw -> render using the shader
 
+// plugin ---------------------------------------------------------------------
+
 // in assets subdirectory
-//const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
-const SHADER_ASSET_PATH: &str = "shaders/test.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/instancing.wgsl";
+//const SHADER_ASSET_PATH: &str = "shaders/test.wgsl";
 
 // custom render pipeline plugin
 pub struct CustomMaterialPlugin;
 
+//
 impl Plugin for CustomMaterialPlugin {
     fn build(&self, app: &mut App) {
+        // all the extractions we need to make from game world to render world
         app.add_plugins((
             ExtractComponentPlugin::<InstanceMaterialData>::default(),
             ExtractResourcePlugin::<AllMapData>::default(),
             ExtractResourcePlugin::<CurrentMap>::default(),
         ));
+        // describing all the parts of the pipeline
+        // renderapp with a custom pipeline resource
+        // render systems are exectuted 
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawCustom>()
             .init_resource::<SpecializedMeshPipelines<CustomPipeline>>()
@@ -119,6 +125,7 @@ struct ElevationBindGroup {
 // PREPARE --------------------------------------------------------------------
 
 // turn our vec stuff into raw bytes
+// does this need to be run as a render system or can it run once?
 fn prepare_instance_buffers(
     mut commands: Commands,
     query: Query<(Entity, &InstanceMaterialData)>,
@@ -126,13 +133,25 @@ fn prepare_instance_buffers(
     all_maps: Option<Res<AllMapData>>,
     existing_elevation: Option<Res<ElevationStorageBuffer>>,
     existing_map_selection: Option<Res<MapSelectionUniformBuffer>>,
+    mut count: Local<Option<u64>>,
 ) {
+    let count = count.get_or_insert(0);
+
     let instance_count = query.iter().count();
     //println!("prepare_instance_buffers: Found {} entities with InstanceMaterialData", instance_count);
 
+    //if entity InstanceBuffer exists, do not run
+    // or do you have to run it each time?
+    // same with the flattening of the storage buffer, thats not a render thing
+    // thats more for preparation before render
+    
+
+
     // instance buffer creation
     for (entity, instance_data) in &query {
-        //println!("Creating instance buffer for entity {:?} with {} instances", entity, instance_data.len());
+        //*count += 1;
+        //println!("Creating instance buffer for entity {:?} with {} instances | run {}|", 
+        //    entity, instance_data.len(), count);
 
         let instance_buffer = 
         render_device.create_buffer_with_data(&BufferInitDescriptor {
@@ -194,8 +213,9 @@ fn prepare_instance_buffers(
 
 // PIPELINE -------------------------------------------------------------------
 
-// defining the custom pipeline
-// uses standard bevy PBR pipeline as base
+// defining the custom pipeline, uses standard bevy PBR pipeline as base
+
+// what are the other parts of a pipeline you can customize?
 #[derive(Resource)]
 struct CustomPipeline {
     shader: Handle<Shader>,
@@ -203,13 +223,21 @@ struct CustomPipeline {
     elevation_bind_group_layout: BindGroupLayout,
 }
 
+//the pipeline has functions that need to be implemented
+
 // load the shader and get base pipeline
 impl FromWorld for CustomPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         let mesh_pipeline = world.resource::<MeshPipeline>();
 
-        // create bind group layour for elevation data
+        // create bind group layout for elevation data
+        // the point of these layouts is that the gpu knows what data
+        // its dealing with.
+        // we declare what binding slot, what shader stage can use it, 
+        // what type of bind is it?, storage? (not allowed in webgl2)
+        // uniform also exists, whats the diff?
+        // we need a texture and sampler for webgl2 (not a bad idea)
         let elevation_bind_group_layout = 
         render_device.create_bind_group_layout(
             Some("elevation_bind_group_layout"),
@@ -238,7 +266,7 @@ impl FromWorld for CustomPipeline {
                 },
             ],
         );
-
+        // return the pipeline
         CustomPipeline {
             shader: world.load_asset(SHADER_ASSET_PATH),
             mesh_pipeline: mesh_pipeline.clone(),
@@ -247,7 +275,8 @@ impl FromWorld for CustomPipeline {
     }
 }
 
-// our specialized pipeline logic, overriding standard pbr
+// our specialized mesh pipeline logic, overriding standard pbr
+// this deals with geometry
 impl SpecializedMeshPipeline for CustomPipeline {
     type Key = MeshPipelineKey;
 
@@ -256,14 +285,16 @@ impl SpecializedMeshPipeline for CustomPipeline {
         key: Self::Key,
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
-        // get descriptor from standard
+        // get descriptor from standard, then we modify it
         let mut descriptor = self.mesh_pipeline.specialize(key, layout)?;
-        // override the shaders
+
+        // override the shaders using clones from struct
+        // why two versions of the same thing?
         descriptor.vertex.shader = self.shader.clone();
         descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
 
-        // Add our custom bind group layout to the pipeline layout
-        // The standard mesh pipeline uses bind groups 0 and 1, so we add ours at position 2
+        // add our custom bind group layout to the pipeline layout
+        // the standard mesh pipeline uses bind groups 0 and 1, so we add ours at position 2
         descriptor.layout.push(self.elevation_bind_group_layout.clone());
 
         // ALERT
@@ -278,7 +309,7 @@ impl SpecializedMeshPipeline for CustomPipeline {
             attributes: vec![
                 // position
                 // shader locations 0-2 are taken up 
-                // by Position, Normal and UV attributes
+                // by Position, Normal and UV attributes of the base mesh
                 // vec4, starts at byte 0
                 // @location(3) in WGSL
                 VertexAttribute {
@@ -293,6 +324,7 @@ impl SpecializedMeshPipeline for CustomPipeline {
                     offset: 16,
                     shader_location: 4
                 },
+                // can remove?
                 // color
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
@@ -305,15 +337,21 @@ impl SpecializedMeshPipeline for CustomPipeline {
                     offset: 48,
                     shader_location: 6,
                 }
+                // is there anything else we want to precompute once?
+                // normals? or are they the same? no theres rotation
+                // elevation movement won't affect normals?
             ],
         });
         Ok(descriptor)
     }
 }
 
+
+// is QUEUE and DRAW part of custom RENDER?
+
 // QUEUE ----------------------------------------------------------------------
 
-// custom draw call
+// function that queues up all of our custom stuff in the render pipeline
 fn queue_custom(
     transparent_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
     custom_pipeline: Res<CustomPipeline>,
@@ -330,13 +368,17 @@ fn queue_custom(
     existing_bind_group: Option<Res<ElevationBindGroup>>,
     mut commands: Commands,
 ) {
-    // create elevation bind group if there is space
+    // add our bind layouts to bind groups
+    // how to make this scale?
     if let (Some(elevation_storage), Some(map_selection)) = 
     (elevation_storage, map_selection) {
         if existing_bind_group.is_none() {
             let bind_group = render_device.create_bind_group(
+                // maybe not the best name?
                 Some("elevation_bind_group"),
+                // we have elevations here, the layout
                 &custom_pipeline.elevation_bind_group_layout,
+                // then also the here plus the map selection?
                 &[
                     BindGroupEntry {
                         binding: 0,
@@ -352,10 +394,11 @@ fn queue_custom(
             commands.insert_resource(ElevationBindGroup { bind_group });
         }
     }
-
+    
+    // same as default draw?
     let draw_custom = transparent_3d_draw_functions.read().id::<DrawCustom>();
 
-    // for each camera/view
+    // for each camera/view, we have one camera in our scene
     for (view, msaa) in &views {
         // get list of things to draw 
         let Some(transparent_phase) = transparent_render_phases.get_mut(
@@ -368,20 +411,26 @@ fn queue_custom(
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
         let rangefinder = view.rangefinder3d();
 
-        // for each entity witho out instancing data
+        // for each entity without instancing data
+        // not exactly sure whats going on here
         for (entity, main_entity) in &material_meshes {
+            // so we have all of our mesh instances?
             let Some(mesh_instance) = render_mesh_instances
                                         .render_mesh_queue_data(*main_entity)
             else {
                 continue;
             };
+
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
                 continue;
             };
+            // what is a key?
+            // what is | in this situation?
             let key =
                 view_key | MeshPipelineKey::from_primitive_topology(
                                                 mesh.primitive_topology());
-
+            
+            // once all the setup is done
             // specialize and compile pipeline for current view settings
             let pipeline = pipelines
                 .specialize(
@@ -392,6 +441,9 @@ fn queue_custom(
 
             // add new drawing command to render phase
             // using our pipeline and draw function
+            // transparent phase is when stuff isn't visible to camera yet?
+            // so entity (cam/view), is bound to a pipeline with a draw func
+            // distance? this other stuff?
             transparent_phase.add(Transparent3d {
                 entity: (entity, *main_entity),
                 pipeline,
@@ -407,6 +459,8 @@ fn queue_custom(
 
 
     // how to pass this to draw command?
+    // does it need to be passed? this is not a command but
+    // an order in which things need to occur?
 }
 
 // DRAW -----------------------------------------------------------------------
@@ -427,7 +481,9 @@ type DrawCustom = (
 
 struct SetElevationBindGroup<const I: usize>;
 
+// this whole signature of impl, fn, stuff i need to learn
 impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetElevationBindGroup<I> {
+    // custom types per impl?
     type Param = Option<SRes<ElevationBindGroup>>;
     type ViewQuery = ();
     type ItemQuery = ();
@@ -448,6 +504,9 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetElevationBindGroup<I>
             RenderCommandResult::Skip
         }
         */
+        // cause single Sres, have to surround with Option
+        // but this causes error in the into_inner
+        // so we Some the wrapped option first, then we can access inside Sres?
         if let Some(elevation_bind_group) = elevation_bind_group {
             let elevation_bind_group = elevation_bind_group.into_inner();
             pass.set_bind_group(I, &elevation_bind_group.bind_group, &[]);
@@ -458,6 +517,9 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetElevationBindGroup<I>
         }
     }
 }
+
+
+// this looks like each PhaseItem is an instance to render?
 
 struct DrawMeshInstanced;
 
@@ -470,6 +532,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
     type ViewQuery = ();
     type ItemQuery = Read<InstanceBuffer>;
 
+    // what does inline do?
     #[inline]
     fn render<'w>(
         item: &P,
@@ -559,7 +622,6 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
             }
         }
 
-
         RenderCommandResult::Success
     }
 }
@@ -602,32 +664,3 @@ fn update_map_from_main_world(
     }
 }
 
-fn update_map_from_main_world2(
-    main_world: Option<Res<MainWorld>>, // Make it Optional
-    render_queue: Res<RenderQueue>,
-    mut map_selection: Option<ResMut<MapSelectionUniformBuffer>>,
-) {
-    println!("checking map_selection");
-    // Check if MainWorld is available
-    if let Some(main_world) = main_world {
-        println!("check main world");
-        if let Some(mut map_selection) = map_selection {
-            println!("checkin map");
-            // Access CurrentMap from the main world
-            if let Some(current_map) = main_world.get_resource::<CurrentMap>() {
-                println!("{}", map_selection.current_map);
-                if map_selection.current_map != current_map.index as u32 {
-                    let new_map_id = current_map.index as u32;
-                    map_selection.current_map = new_map_id;
-                    
-                    let data: [u32; 4] = [new_map_id, 65341, 0, 0];
-                    render_queue.write_buffer(
-                        &map_selection.buffer,
-                        0,
-                        bytemuck::cast_slice(&data),
-                    );
-                }
-            }
-        }
-    }
-}

@@ -20,6 +20,7 @@
 @group(2) @binding(0) var<storage, read> elevation_buffer: array<i32>;
 // map_id, points_per_map, padding, padding
 @group(2) @binding(1) var<uniform> map_selection: vec4<u32>;
+// we need a sun position uniform buff for the fragment shader
 
 // buffer goes in and buffer goes out
 
@@ -152,10 +153,11 @@ fn vertex(vertex: Vertex) -> CustomVertexOutput {
 // receives interpolated color and normal
 // simple directional lighting, calculate diffuse lighting
 // calculates simple lighting and returns final "lit" pixel color
+// needs time or sun position to create moving effect
 @fragment
 fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
-    
-    let light_dir = normalize(vec3<f32>(1.0, 1.0, 0.5));
+    // position here would be good
+    let light_dir = normalize(vec3<f32>(1.0, 1.0, 1.0));
     let ambient = 0.3;
     
     let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
@@ -163,7 +165,7 @@ fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
     
     let lit_color = in.color.rgb * (ambient + diffuse);
     
-    //return vec4<f32>(lit_color, in.color.a);
-    return vec4<f32>(in.color.rgb, in.color.a);
+    return vec4<f32>(lit_color, in.color.a);
+    //return vec4<f32>(in.color.rgb, in.color.a);
 }
 
