@@ -12,7 +12,8 @@ use bevy::{
     },
     render::{
         mesh::*,
-        extract_component::{ExtractComponent},
+        //extract_component::{ExtractComponent},
+        extract_resource::{ExtractResource},
     },
     prelude::*,
 };
@@ -56,12 +57,11 @@ pub struct Star;
 //}
 //need position and light direction?
 //or is light direction calced, from pos to 0,0,0?
-#[derive(Default, Clone, Component, ExtractComponent)]
+//#[derive(Default, Clone, Component, ExtractComponent)]
+#[derive(Default, Clone, Resource, ExtractResource)]
 pub struct SunPosition {
     pub pos: Vec3
-
 }
-
 
 #[derive(Component, Clone)]
 pub struct Orbit {
@@ -70,8 +70,9 @@ pub struct Orbit {
     pub center: Vec3,
 }
 
-const DAY: f32 = PI / 64.0;
+const DAY: f32 = PI / 16.0;
 const LUX: f32 = 3200.0;
+pub const INITIAL_SUN_POSITION: Vec3 = Vec3::new(149_000.0, 0.0, 0.0);
 
 // Startup system, create light and sun
 pub fn spawn_sun_geocentrism(
@@ -80,8 +81,9 @@ pub fn spawn_sun_geocentrism(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Sun is 149 million km away from earth
-    let initial_light_position = Vec3::new(149_000.0, 0.0, 0.0);
-    let target_point = Vec3::ZERO; // geocentric model
+    // geocentric model
+    let initial_light_position = INITIAL_SUN_POSITION;
+    let target_point = Vec3::ZERO; 
     let up_direction = Vec3::Y;
     let orbit = Orbit {
         speed: DAY,
@@ -122,11 +124,17 @@ pub fn spawn_sun_geocentrism(
         Star,
         orbit.clone(),
     ));
+    
+    // global sun position resource for shader
+    commands.insert_resource(SunPosition {
+        pos: initial_light_position,
+    });
 }
 
 // Update system, orbits sun around earth at 0,0,0
 pub fn orbit_geocentrism(
     mut query: Query<(&mut Transform, &Orbit), With<Star>>,
+    mut sun_position: ResMut<SunPosition>,
     time: Res<Time>,
 ) {
     for (mut transform, orbit) in &mut query {
@@ -141,9 +149,13 @@ pub fn orbit_geocentrism(
         let new_x = radius * angle.cos();
         let new_z = radius * angle.sin();
         
-        // set new position and point at center
-        transform.translation = Vec3::new(new_x, 0.0, new_z);
+        // set new position and point at 0,0,0
+        let new_position = Vec3::new(new_x, 0.0, new_z);
+        transform.translation = new_position;
         transform.look_at(Vec3::ZERO, Vec3::Y);
+
+        // update sun resource
+        sun_position.pos = new_position;
         
         //println!("Light at ({}, 0, {}), angle: {}", new_x, new_z, angle);
     }

@@ -20,6 +20,8 @@
 @group(2) @binding(0) var<storage, read> elevation_buffer: array<i32>;
 // map_id, points_per_map, padding, padding
 @group(2) @binding(1) var<uniform> map_selection: vec4<u32>;
+// x, y, z, w
+@group(2) @binding(2) var<uniform> sun_position: vec4<f32>;
 // we need a sun position uniform buff for the fragment shader
 
 // buffer goes in and buffer goes out
@@ -149,11 +151,13 @@ fn vertex(vertex: Vertex) -> CustomVertexOutput {
     return out;
 }
 
+
 // this fragment shader runs for every pixel of every prism
 // receives interpolated color and normal
 // simple directional lighting, calculate diffuse lighting
 // calculates simple lighting and returns final "lit" pixel color
 // needs time or sun position to create moving effect
+/*
 @fragment
 fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
     // position here would be good
@@ -168,4 +172,52 @@ fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(lit_color, in.color.a);
     //return vec4<f32>(in.color.rgb, in.color.a);
 }
+*/
 
+@fragment
+fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    // Calculate light direction from fragment to sun
+    // Since sun is very far away (149,000 units), we can treat it as directional
+    let light_dir = normalize(sun_position.xyz - in.world_position);
+    
+    // Alternative: For a true directional light (sun at infinity)
+    // just use sun position as direction since Earth is at origin
+    // let light_dir = normalize(sun_position.xyz);
+    
+    // Ambient light - base illumination even in shadow
+    let ambient = 0.3;
+    
+    // Diffuse lighting - how directly the surface faces the sun
+    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
+    let diffuse = n_dot_l * 0.7;
+    
+    // Combine ambient and diffuse lighting
+    let lit_color = in.color.rgb * (ambient + diffuse);
+    
+    return vec4<f32>(lit_color, in.color.a);
+}
+
+/*
+@fragment
+fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    let light_dir = normalize(sun_position.xyz);
+    
+    // Enhanced ambient with subtle blue tint for atmosphere
+    let ambient_color = vec3<f32>(0.25, 0.27, 0.35);
+    let ambient = in.color.rgb * ambient_color;
+    
+    // Warmer sunlight color
+    let sun_color = vec3<f32>(1.0, 0.95, 0.8);
+    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
+    let diffuse = in.color.rgb * sun_color * n_dot_l * 0.75;
+    
+    // Add slight rim lighting for atmosphere effect
+    let view_dir = normalize(-in.world_position); // camera at origin
+    let rim = 1.0 - max(dot(view_dir, in.world_normal), 0.0);
+    let rim_light = pow(rim, 3.0) * 0.1 * vec3<f32>(0.5, 0.7, 1.0);
+    
+    let final_color = ambient + diffuse + rim_light;
+    
+    return vec4<f32>(final_color, in.color.a);
+}
+*/

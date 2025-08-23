@@ -45,6 +45,7 @@ use crate::earth::{
     InstanceData,
     InstanceMaterialData,
 };
+use crate::sun::SunPosition;
 use crate::mapupdate::CurrentMap;
 
 // setup -> ECS entities with CPU side data
@@ -70,6 +71,7 @@ impl Plugin for CustomMaterialPlugin {
             ExtractComponentPlugin::<InstanceMaterialData>::default(),
             ExtractResourcePlugin::<AllMapData>::default(),
             ExtractResourcePlugin::<CurrentMap>::default(),
+            ExtractResourcePlugin::<SunPosition>::default(),
         ));
         // describing all the parts of the pipeline
         // renderapp with a custom pipeline resource
@@ -84,6 +86,10 @@ impl Plugin for CustomMaterialPlugin {
                         .in_set(RenderSet::PrepareResources),
                     
                     update_map_from_main_world
+                        .in_set(RenderSet::PrepareResources)
+                        .after(prepare_instance_buffers),
+
+                    update_sun_from_main_world
                         .in_set(RenderSet::PrepareResources)
                         .after(prepare_instance_buffers),
                     
@@ -118,9 +124,16 @@ pub struct MapSelectionUniformBuffer {
 }
 
 #[derive(Resource)]
+pub struct SunPositionUniformBuffer {
+    pub buffer: Buffer,
+    pub position: Vec3,
+}
+
+#[derive(Resource)]
 struct ElevationBindGroup {
     bind_group: BindGroup,
 }
+
 
 // PREPARE --------------------------------------------------------------------
 
@@ -133,6 +146,7 @@ fn prepare_instance_buffers(
     all_maps: Option<Res<AllMapData>>,
     existing_elevation: Option<Res<ElevationStorageBuffer>>,
     existing_map_selection: Option<Res<MapSelectionUniformBuffer>>,
+    existing_sun_position: Option<Res<SunPositionUniformBuffer>>,
     mut count: Local<Option<u64>>,
 ) {
     let count = count.get_or_insert(0);
@@ -195,18 +209,38 @@ fn prepare_instance_buffers(
 
         // defaults at 0
         // map_id, points_per_map, padding
-        let uniform_data: [u32; 4] = [0, 65341, 0, 0];
+        let map_data: [u32; 4] = [0, 65341, 0, 0];
 
-        let uniform_buffer =
+        let map_buffer =
         render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("map selection uniform buffer"),
-            contents: bytemuck::cast_slice(&uniform_data),
+            contents: bytemuck::cast_slice(&map_data),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
         commands.insert_resource(MapSelectionUniformBuffer { 
-            buffer: uniform_buffer,
+            buffer: map_buffer,
             current_map: 0,
+        });
+    }
+
+    // create sun position uniform buffer
+    if existing_sun_position.is_none() {
+        println!("Creating sun position uniform buffer");
+
+        // defaults at 149k
+        let sun_data: [f32; 4] = [149_000.0, 0.0, 0.0, 1.0];
+
+        let sun_buffer =
+        render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("sun position uniform buffer"),
+            contents: bytemuck::cast_slice(&sun_data),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
+        commands.insert_resource(SunPositionUniformBuffer { 
+            buffer: sun_buffer,
+            position: Vec3::new(149_000.0, 0.0, 0.0),
         });
     }
 }
@@ -257,6 +291,17 @@ impl FromWorld for CustomPipeline {
                 BindGroupLayoutEntry {
                     binding: 1,
                     visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // binding 2: sun position uniform buffer
+                BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: ShaderStages::FRAGMENT, //VERTEX,
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -365,13 +410,14 @@ fn queue_custom(
     render_device: Res<RenderDevice>,
     elevation_storage: Option<Res<ElevationStorageBuffer>>,
     map_selection: Option<Res<MapSelectionUniformBuffer>>,
+    sun_position: Option<Res<SunPositionUniformBuffer>>,
     existing_bind_group: Option<Res<ElevationBindGroup>>,
     mut commands: Commands,
 ) {
     // add our bind layouts to bind groups
     // how to make this scale?
-    if let (Some(elevation_storage), Some(map_selection)) = 
-    (elevation_storage, map_selection) {
+    if let (Some(elevation_storage), Some(map_selection), Some(sun_position)) = 
+    (elevation_storage, map_selection, sun_position) {
         if existing_bind_group.is_none() {
             let bind_group = render_device.create_bind_group(
                 // maybe not the best name?
@@ -387,6 +433,10 @@ fn queue_custom(
                     BindGroupEntry {
                         binding: 1,
                         resource: map_selection.buffer.as_entire_binding(),
+                    },
+                    BindGroupEntry {
+                        binding: 2,
+                        resource: sun_position.buffer.as_entire_binding(),
                     },
                 ]
             );
@@ -641,7 +691,8 @@ fn update_map_from_main_world(
     // println!("checking map_selection");
 
     // Check that both the extracted resource and our render buffer exist.
-    if let (Some(current_map), Some(mut map_selection)) = (current_map, map_selection) {
+    if let (Some(current_map), Some(mut map_selection)) = 
+    (current_map, map_selection) {
         
         // This is the core logic. Has the index in the Main World changed
         // from what the Render World currently knows?
@@ -661,6 +712,25 @@ fn update_map_from_main_world(
                 bytemuck::cast_slice(&data),
             );
         }
+    }
+}
+
+fn update_sun_from_main_world(
+    render_queue: Res<RenderQueue>,
+    sun_position: Option<Res<SunPosition>>,
+    mut sun_position_buffer: Option<ResMut<SunPositionUniformBuffer>>,
+) {
+    if let (Some(sun_position), Some(mut sun_position_buffer)) =
+    (sun_position, sun_position_buffer) {
+            let n = sun_position.pos;
+            sun_position_buffer.position = n;
+
+            let data: [f32; 4] = [n.x, n.y, n.z, 1.0];
+            render_queue.write_buffer(
+                &sun_position_buffer.buffer,
+                0,
+                bytemuck::cast_slice(&data),
+            );
     }
 }
 

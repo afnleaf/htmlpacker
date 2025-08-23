@@ -11,6 +11,7 @@ use bevy::{
 #[derive(Component)]
 pub struct CurrentMapText;
 
+//#[derive(Component, Default, Clone, ExtractComponent)]
 #[derive(Resource, Default, Clone, ExtractResource)]
 pub struct CurrentMap {
     pub index: usize,
