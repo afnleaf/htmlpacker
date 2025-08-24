@@ -129,7 +129,7 @@ fn initial_setup(
     //ground_plane(&mut commands, &mut meshes, &mut materials);
     //sphere(&mut commands, &mut meshes, &mut materials);
     
-    sun::ambient_light(&mut commands);
+    //sun::ambient_light(&mut commands);
     tools::fps_widget(&mut commands);
     mapupdate::current_map_widget(&mut commands);
 }

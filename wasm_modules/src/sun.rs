@@ -92,22 +92,22 @@ pub fn spawn_sun_geocentrism(
     };
     
     // light source itself
-    commands.spawn((
-        DirectionalLight {
-            //color: Color::WHITE,
-            illuminance: LUX,
-            shadows_enabled: true,
-            shadow_depth_bias: DirectionalLight::DEFAULT_SHADOW_DEPTH_BIAS,
-            shadow_normal_bias: DirectionalLight::DEFAULT_SHADOW_NORMAL_BIAS,
-            ..default()
-        },
-        // Its position and initial orientation
-        Transform::from_translation(initial_light_position)
-            .looking_at(target_point, up_direction),
-        // Marker component for the system to find it
-        Star,
-        orbit.clone(),
-    ));
+    //commands.spawn((
+    //    DirectionalLight {
+    //        //color: Color::WHITE,
+    //        illuminance: LUX,
+    //        shadows_enabled: true,
+    //        shadow_depth_bias: DirectionalLight::DEFAULT_SHADOW_DEPTH_BIAS,
+    //        shadow_normal_bias: DirectionalLight::DEFAULT_SHADOW_NORMAL_BIAS,
+    //        ..default()
+    //    },
+    //    // Its position and initial orientation
+    //    Transform::from_translation(initial_light_position)
+    //        .looking_at(target_point, up_direction),
+    //    // Marker component for the system to find it
+    //    Star,
+    //    orbit.clone(),
+    //));
 
     // sphere at the same position as real sun relative to our solar system size
     // earth is 6.738

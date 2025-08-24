@@ -118,7 +118,7 @@
         await wasm_bindgen(wasmBytes);
     }
     
-    async function loadApp2() {
+    async function loadAppOld() {
         console.log("Loading wasm main app...");
         // get the main binary
         const wasmMain64 = document.getElementById('bin-wasm').innerHTML.trim();

@@ -130,11 +130,12 @@ pub fn load_and_parse_maps_deg1() -> Vec<ElevationBuffer> {
 #[repr(C)]
 pub struct InstanceData {
     position: Vec3,
-    scale: f32,
+    scale: Vec3,
+    _padding1: [f32; 2],
     rotation: Quat,
     color: [f32; 4],
     elevation_index: u32,
-    _padding: [f32; 3],
+    _padding2: [f32; 3],
 }
 
 // all of the instance properties together in a vec as a component
@@ -181,12 +182,32 @@ pub fn setup_instance_geometries(
             // smaller at poles, larger at equator
             // cos(lat) gives us 1.0 at equator, ~0 at poles
             
-            let lat_scale = lat_rad.cos() as f32;  
-            let base_scale = 0.75;
-            let min_scale = 0.6;
-            let scaled = base_scale * lat_scale;
-            let scale = scaled.max(min_scale);
+            //let lat_scale = lat_rad.cos() as f32;  
+            //let base_scale = 1.0;
+            //let min_scale = 0.5;
+            //let scaled = base_scale * lat_scale;
+            //let mut scale = scaled.max(min_scale);
+            //scale = 1.0;
+            // Calculate latitude-based scale for longitude compression
+            let lat_scale = lat_rad.cos().abs() as f32;  
             
+            // Base scale for 1-degree grid cells
+            let base_scale = 0.15;   // Overall size at equator
+            let min_lon_scale = 0.75; // Minimum longitude scale at poles (20% of equator)
+            
+            // Non-uniform scaling: 
+            // - X and Z (east-west) scale down with latitude
+            // - Y (north-south) remains constant
+            let lon_scale = base_scale * (min_lon_scale + (1.0 - min_lon_scale) * lat_scale);
+            let lat_scale_uniform = base_scale; // Constant for latitude direction
+            
+            // Create Vec3 scale
+            let scale = Vec3::new(
+                lon_scale,           // X scale (varies with latitude)
+                lat_scale_uniform,   // Y scale (constant)
+                lon_scale,           // Z scale (varies with latitude)
+            );
+
             //let lat_factor = lat_rad.cos().abs().sqrt() as f32;
             //let scale = 0.67 * (0.7 + 0.3 * lat_factor);
 
@@ -228,10 +249,11 @@ pub fn setup_instance_geometries(
                 InstanceData {
                     position,
                     scale, 
+                    _padding1: [0.0; 2],
                     rotation,
                     color,
                     elevation_index,
-                    _padding: [0.0; 3],
+                    _padding2: [0.0; 3],
                 }
             })
         })
@@ -242,7 +264,7 @@ pub fn setup_instance_geometries(
     
     // Spawn the instanced mesh
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(0.2, 0.4, 0.2))),
+        Mesh3d(meshes.add(Cuboid::new(1.0, 5.0, 1.0))),
         InstanceMaterialData(instance_data),
         NoFrustumCulling,
     ));

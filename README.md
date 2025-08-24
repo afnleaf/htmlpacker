@@ -23,11 +23,9 @@ put the wasm in the base64 lil bro
 - [x] wasm-bindgen
 - [x] wasm canvas
 - [x] wasm bevy
-- [x] loading screen simple
-- [ ] loading screen advanced
+- [x] loading screen steps
 - [x] indexedDB during first time load, cache wasm_modules as u8
 - [ ] library api
-- [ ] skip compilation
 - [x] metadata
 - [x] favicon svg
 - [ ] favicon all
@@ -36,6 +34,7 @@ put the wasm in the base64 lil bro
 - [ ] wasm advanced
 - [ ] cli tool
 - [ ] mcp
+- [ ] ~~skip compilation~~
 - [ ] ~~base94 (slowww...)~~
 - [ ] base122 (in rust)
 - [x] instanced mesh custom render shader pipeline

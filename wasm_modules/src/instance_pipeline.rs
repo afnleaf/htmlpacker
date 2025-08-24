@@ -355,32 +355,38 @@ impl SpecializedMeshPipeline for CustomPipeline {
                 // position
                 // shader locations 0-2 are taken up 
                 // by Position, Normal and UV attributes of the base mesh
-                // vec4, starts at byte 0
+                // vec3, starts at byte 0
                 // @location(3) in WGSL
                 VertexAttribute {
-                    format: VertexFormat::Float32x4,
+                    format: VertexFormat::Float32x3,
                     offset: 0,
                     shader_location: 3,                 
+                },
+                // scale
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: 12,
+                    shader_location: 4,
                 },
                 //rotation
                 //using manual offsets here at byte 16
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
-                    offset: 16,
-                    shader_location: 4
+                    offset: 32,
+                    shader_location: 5,
                 },
                 // can remove?
                 // color
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
-                    offset: 32,
-                    shader_location: 5,
+                    offset: 48,
+                    shader_location: 6,
                 },
                 // elevation index
                 VertexAttribute {
                     format: VertexFormat::Uint32,
-                    offset: 48,
-                    shader_location: 6,
+                    offset: 64,
+                    shader_location: 7,
                 }
                 // is there anything else we want to precompute once?
                 // normals? or are they the same? no theres rotation
