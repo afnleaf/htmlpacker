@@ -151,82 +151,41 @@ fn getColorFromElevation(elevation: f32) -> vec4<f32> {
 // pass instance color and transformed normal to the fragment shader
 // return out buffer
 
-/*
 @vertex
 fn vertex(vertex: Vertex) -> CustomVertexOutput {
     var out: CustomVertexOutput;
-
+    
+    // get index of map in storage buffer to access elevation of instance
     let global_index = 
     map_selection.x * (map_selection.y) + vertex.elevation_index;
-    //let elevation_meters = f32(elevation_buffer[global_index]) * 0.001;
     let elevation_meters = f32(elevation_buffer[global_index]);
 
-    let base_sphere_position = vertex.i_pos_scale.xyz;
+    // position 
+    let base_sphere_position = vertex.i_position;
     let sphere_radius = length(base_sphere_position);
     let sphere_direction = normalize(base_sphere_position);
 
+    // elevation
     let elevation_world_units = elevation_meters * 0.00005;
     let elevated_instance_pos = 
     sphere_direction * (sphere_radius + elevation_world_units);
-
-    let rotated_position = 
-    apply_quaternion_rotation(vertex.i_rotation, vertex.position);
-    let scaled_position = rotated_position * vertex.i_pos_scale.w;
-
-    let final_position = scaled_position + elevated_instance_pos;
     
-    out.clip_position = mesh_position_local_to_clip(
-        get_world_from_local(0u),
-        vec4<f32>(final_position, 1.0)
-    );
-    
-    let rotated_normal = 
-    apply_quaternion_rotation(vertex.i_rotation, vertex.normal);
-    
-    let world_from_local = get_world_from_local(0u);
-    out.world_normal = 
-    normalize((world_from_local * vec4<f32>(rotated_normal, 0.0)).xyz);
-    
-    out.world_position = 
-    (world_from_local * vec4<f32>(final_position, 1.0)).xyz;
-
-    let color = getColorFromElevation(elevation_meters);
-    
-    //out.color = vertex.i_color;
-    out.color = color;
-    
-    return out;
-}
-*/
-@vertex
-fn vertex(vertex: Vertex) -> CustomVertexOutput {
-    var out: CustomVertexOutput;
-
-    let global_index = 
-    map_selection.x * (map_selection.y) + vertex.elevation_index;
-    let elevation_meters = f32(elevation_buffer[global_index]);
-
-    let base_sphere_position = vertex.i_position;  // CHANGED: use i_position
-    let sphere_radius = length(base_sphere_position);
-    let sphere_direction = normalize(base_sphere_position);
-
-    let elevation_world_units = elevation_meters * 0.00006;
-    let elevated_instance_pos = 
-    sphere_direction * (sphere_radius + elevation_world_units);
-
+    // rotate 
     let rotated_position = 
     apply_quaternion_rotation(vertex.i_rotation, vertex.position);
     
-    // CHANGED: Apply non-uniform scaling
+    // non-uniform scaling
     let scaled_position = rotated_position * vertex.i_scale;
 
+    // adjust elevation position to scale based on lat
     let final_position = scaled_position + elevated_instance_pos;
     
     out.clip_position = mesh_position_local_to_clip(
         get_world_from_local(0u),
         vec4<f32>(final_position, 1.0)
     );
-    
+  
+    // adjust normal
     let rotated_normal = 
     apply_quaternion_rotation(vertex.i_rotation, vertex.normal);
     
@@ -249,72 +208,42 @@ fn vertex(vertex: Vertex) -> CustomVertexOutput {
 // simple directional lighting, calculate diffuse lighting
 // calculates simple lighting and returns final "lit" pixel color
 // needs time or sun position to create moving effect
-/*
 @fragment
 fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
-    // position here would be good
-    let light_dir = normalize(vec3<f32>(1.0, 1.0, 1.0));
-    let ambient = 0.3;
-    
-    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
-    let diffuse = n_dot_l * 0.7;
-    
-    let lit_color = in.color.rgb * (ambient + diffuse);
-    
-    return vec4<f32>(lit_color, in.color.a);
-    //return vec4<f32>(in.color.rgb, in.color.a);
-}
-*/
-
-/*
-@fragment
-fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
-    // Calculate light direction from fragment to sun
-    // Since sun is very far away (149,000 units), we can treat it as directional
-    let light_dir = normalize(sun_position.xyz - in.world_position);
-    
-    // Alternative: For a true directional light (sun at infinity)
-    // just use sun position as direction since Earth is at origin
-    // let light_dir = normalize(sun_position.xyz);
-    
-    // Ambient light - base illumination even in shadow
-    let ambient = 0.01;
-    
-    // Diffuse lighting - how directly the surface faces the sun
-    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
-    let diffuse = n_dot_l * 0.54;
-    
-    // Combine ambient and diffuse lighting
-    let lit_color = in.color.rgb * (ambient + diffuse);
-    
-    return vec4<f32>(lit_color, in.color.a);
-}
-*/
-
-@fragment
-fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    // calculate sun direction from sun position uniform buffer
     let light_dir = normalize(sun_position.xyz);
     
-    // Enhanced ambient with subtle blue tint for atmosphere
-    //let ambient_color = vec3<f32>(0.25, 0.27, 0.35);
-    //let ambient = in.color.rgb * ambient_color;
-
-    // Ambient light - base illumination even in shadow
-    let ambient = 0.5;
+    // ambient base illumination
+    // enhanced ambient with subtle blue tint for atmosphere
+    let ambient_color = vec3<f32>(0.25, 0.27, 0.35);
+    let ambient = in.color.rgb * ambient_color;
+    //let ambient = 0.1;
     
-    // Warmer sunlight color
-    let sun_color = vec3<f32>(1.0, 0.95, 0.8);
+    // sunlight color
+    // warmer
+    //let sun_color = vec3<f32>(1.0, 0.95, 0.8);
+    // white
+    let sun_color = vec3<f32>(1.0, 1.0, 1.0);
+    
+    // calculate diffuse lighting from sun direction
     let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
-    let diffuse = in.color.rgb * sun_color * n_dot_l * 1.0;
+    let diffuse =  sun_color * n_dot_l * 1.0;
     
     // Add slight rim lighting for atmosphere effect
-    //let view_dir = normalize(-in.world_position); // camera at origin
-    //let rim = 1.0 - max(dot(view_dir, in.world_normal), 0.0);
-    //let rim_light = pow(rim, 3.0) * 0.1 * vec3<f32>(0.5, 0.7, 1.0);
+    let view_dir = normalize(-in.world_position); // camera at origin
+    let rim = 1.0 - max(dot(view_dir, in.world_normal), 0.0);
+    let rim_light = pow(rim, 3.0) * 0.1 * vec3<f32>(0.5, 0.7, 1.0);
     
-    //let final_color = ambient + diffuse + rim_light;
-    //let final_color = ambient + diffuse;
-    let final_color = in.color.rgb;
+    //let final_color = in.color.rgb * (ambient + diffuse);
+    let final_color = in.color.rgb * (ambient + diffuse + rim_light);
+    //let final_color = in.color.rgb;
     
     return vec4<f32>(final_color, in.color.a);
 }
+    
+
+
+    
+    
+    
+

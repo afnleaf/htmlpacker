@@ -70,7 +70,7 @@ pub struct Orbit {
     pub center: Vec3,
 }
 
-const DAY: f32 = PI / 16.0;
+const DAY: f32 = PI / 256.0;
 const LUX: f32 = 3200.0;
 pub const INITIAL_SUN_POSITION: Vec3 = Vec3::new(149_000.0, 0.0, 0.0);
 

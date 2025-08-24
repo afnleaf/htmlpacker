@@ -1,3 +1,5 @@
+// OLD STUFF
+
 // Complete instancing.wgsl shader file with sun integration
 
 // Import required Bevy functions
@@ -153,3 +155,92 @@ fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
     
     return vec4<f32>(final_color, in.color.a);
 }
+
+/*
+@vertex
+fn vertex(vertex: Vertex) -> CustomVertexOutput {
+    var out: CustomVertexOutput;
+
+    let global_index = 
+    map_selection.x * (map_selection.y) + vertex.elevation_index;
+    //let elevation_meters = f32(elevation_buffer[global_index]) * 0.001;
+    let elevation_meters = f32(elevation_buffer[global_index]);
+
+    let base_sphere_position = vertex.i_pos_scale.xyz;
+    let sphere_radius = length(base_sphere_position);
+    let sphere_direction = normalize(base_sphere_position);
+
+    let elevation_world_units = elevation_meters * 0.00005;
+    let elevated_instance_pos = 
+    sphere_direction * (sphere_radius + elevation_world_units);
+
+    let rotated_position = 
+    apply_quaternion_rotation(vertex.i_rotation, vertex.position);
+    let scaled_position = rotated_position * vertex.i_pos_scale.w;
+
+    let final_position = scaled_position + elevated_instance_pos;
+    
+    out.clip_position = mesh_position_local_to_clip(
+        get_world_from_local(0u),
+        vec4<f32>(final_position, 1.0)
+    );
+    
+    let rotated_normal = 
+    apply_quaternion_rotation(vertex.i_rotation, vertex.normal);
+    
+    let world_from_local = get_world_from_local(0u);
+    out.world_normal = 
+    normalize((world_from_local * vec4<f32>(rotated_normal, 0.0)).xyz);
+    
+    out.world_position = 
+    (world_from_local * vec4<f32>(final_position, 1.0)).xyz;
+
+    let color = getColorFromElevation(elevation_meters);
+    
+    //out.color = vertex.i_color;
+    out.color = color;
+    
+    return out;
+}
+*/
+:/*
+@fragment
+fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    // position here would be good
+    let light_dir = normalize(vec3<f32>(1.0, 1.0, 1.0));
+    let ambient = 0.3;
+    
+    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
+    let diffuse = n_dot_l * 0.7;
+    
+    let lit_color = in.color.rgb * (ambient + diffuse);
+    
+    return vec4<f32>(lit_color, in.color.a);
+    //return vec4<f32>(in.color.rgb, in.color.a);
+}
+*/
+
+/*
+@fragment
+fn fragment(in: CustomVertexOutput) -> @location(0) vec4<f32> {
+    // Calculate light direction from fragment to sun
+    // Since sun is very far away (149,000 units), we can treat it as directional
+    let light_dir = normalize(sun_position.xyz - in.world_position);
+    
+    // Alternative: For a true directional light (sun at infinity)
+    // just use sun position as direction since Earth is at origin
+    // let light_dir = normalize(sun_position.xyz);
+    
+    // Ambient light - base illumination even in shadow
+    let ambient = 0.01;
+    
+    // Diffuse lighting - how directly the surface faces the sun
+    let n_dot_l = max(dot(in.world_normal, light_dir), 0.0);
+    let diffuse = n_dot_l * 0.54;
+    
+    // Combine ambient and diffuse lighting
+    let lit_color = in.color.rgb * (ambient + diffuse);
+    
+    return vec4<f32>(lit_color, in.color.a);
+}
+*/

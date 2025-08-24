@@ -265,6 +265,7 @@ pub fn setup_instance_geometries(
     // Spawn the instanced mesh
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(1.0, 5.0, 1.0))),
+        //Mesh3d(meshes.add(Cylinder::default())),
         InstanceMaterialData(instance_data),
         NoFrustumCulling,
     ));
