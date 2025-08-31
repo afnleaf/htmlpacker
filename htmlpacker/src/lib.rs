@@ -22,68 +22,19 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 // modules
-pub mod encoder;
-pub mod htmlpacker;
-pub mod wasmbuilder;
+mod config;
+mod encoder;
+mod fetcher;
+mod html;
+mod wasmbuilder;
 //use ::htmlpacker::encoder;
 //use ::htmlpacker::htmlpacker;
 //use ::htmlpacker::wasmbuilder;
+//use ::htmlpacker::config::{assetsource, packerconfig, wasmmodule, metaconfig, compressiontype};
+//use config::{AssetSource, PackerConfig, WasmModule, MetaConfig, CompressionType};
 
-
-// internal config structs
-
-// enum that distinguishes between local and remote files
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum AssetSource {
-    Local(PathBuf),
-    Remote(Url),
-}
-
-impl Default for AssetSource {
-    fn default() -> Self {
-        AssetSource::Local(PathBuf::new())
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-//#[serde(rename_all = "lowercase")]
-pub enum CompressionType {
-    Brotli,
-    None,
-}
-
-impl Default for CompressionType {
-    fn default() -> Self {
-        CompressionType::None
-    }
-}
-
-// these are the configuration options for the packer
-// this defines the source files that will be packed
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct PackerConfig {
-    pub meta: Option<MetaConfig>,
-    pub favicon: Option<Vec<AssetSource>>,
-    pub styles: Option<Vec<AssetSource>>,
-    pub scripts: Option<Vec<AssetSource>>,
-    pub wasm: Option<Vec<WasmModule>>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct MetaConfig {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub description: Option<String>,
-    pub keywords: Option<String>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct WasmModule {
-    pub id: String,
-    pub source: AssetSource,
-    pub compression: CompressionType,
-}
+pub use config::*;
+pub use encoder::Base;
 
 // yaml structs
 // not sure if this is correct
@@ -270,7 +221,7 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
         None => vec![],
     };
 
-    let markup = htmlpacker::page(
+    let markup = html::page(
         styles_text,
         icons,
         scripts,
@@ -280,7 +231,7 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
 
     let html = markup.into_string();
     //println!("html: {}", html);
-    htmlpacker::save_html(html, cli.output)?;
+    html::save_html(html, cli.output)?;
 
     Ok(())
 }
@@ -307,13 +258,13 @@ async fn get_icons(
 async fn get_styles_text(
     style_sources: Vec<AssetSource>
 ) -> Result<String, Box<dyn Error>> {
-    //let styles_text = htmlpacker::get_css_string(css_urls).await?;
+    //let styles_text = fetcher::get_css_string(css_urls).await?;
     // init empty string
     let mut styles_text = String::from("");
     for source in style_sources {
         let text = match source {
-            AssetSource::Local(path) => htmlpacker::get_local_file(&path)?,
-            AssetSource::Remote(url) => htmlpacker::get_remote_file(url).await?,
+            AssetSource::Local(path) => fetcher::get_local_file(&path)?,
+            AssetSource::Remote(url) => fetcher::get_remote_file(url).await?,
         };
         // append
         styles_text.push_str(&text);
@@ -327,8 +278,8 @@ async fn get_sources(
     let mut source_text_list: Vec<String> = vec![];
     for source in sources {
         let text = match source {
-            AssetSource::Local(path) => htmlpacker::get_local_file(&path)?,
-            AssetSource::Remote(url) => htmlpacker::get_remote_file(url).await?,
+            AssetSource::Local(path) => fetcher::get_local_file(&path)?,
+            AssetSource::Remote(url) => fetcher::get_remote_file(url).await?,
         };
         //append
         source_text_list.push(text);
