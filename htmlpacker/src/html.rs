@@ -1,3 +1,10 @@
+/*
+* html.rs
+*
+* using the maud templating crate 
+* pack the sources into their part of the html
+*/
+
 use std::fs::File;
 use std::fs;
 use std::io::prelude::*;

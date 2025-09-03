@@ -1,3 +1,10 @@
+/*
+* wasmbuilder.rs
+*
+* functions that will compile rust code in the directories
+* need to add config stuff
+*/
+
 use std::error::Error;
 use std::process::Command;
 use tokio::task;

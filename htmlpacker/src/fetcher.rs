@@ -1,3 +1,9 @@
+/*
+* fetcher.rs
+*
+* fetches source files whether they are local or external
+*/
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path};

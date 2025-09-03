@@ -1,4 +1,10 @@
 /*
+* lib.rs
+*
+* not sure why or what im doing here
+*/
+
+/*
 This is the main of the program that packs everything together
 
 we fetch scripts from here

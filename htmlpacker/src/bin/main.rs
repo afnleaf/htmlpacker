@@ -1,5 +1,7 @@
 /*
-* tiny bin entry point 
+* main.rs
+*
+* tiny bin entry point
 */
 
 use htmlpacker::*;

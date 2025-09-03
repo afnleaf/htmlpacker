@@ -1,3 +1,10 @@
+/*
+* cli.rs
+* 
+* where cli commands are parsed
+* yaml config declaration
+*/
+
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashMap;

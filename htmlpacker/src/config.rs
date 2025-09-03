@@ -1,3 +1,11 @@
+/*
+* config.rs
+*
+* where the configuration structs are declared
+* also where the config is built
+* the config determines how the sources get packed into html
+*/
+
 use std::path::PathBuf;
 use url::Url;
 use serde::{Deserialize, Serialize};

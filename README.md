@@ -26,6 +26,7 @@ put the wasm in the base64 lil bro
 - [x] loading screen steps
 - [x] indexedDB during first time load, cache wasm_modules as u8
 - [ ] library api
+- [ ] test suite
 - [x] metadata
 - [x] favicon svg
 - [ ] favicon all

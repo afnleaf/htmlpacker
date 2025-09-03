@@ -1,19 +1,21 @@
 /*
-The point of this file:
-encode the wasm binaries using brotli and base64
-return a Base, which means what goes into a <pre> tag inside the html
-
-base64 is highly optimized for encode/decode
-we will eventually implement base94 if there is a need
-
-so what do we need to do to encode
-we read the file from a filepath
-
-we compress with brotli (or not)
-
-we encode as base64
-
-we return the id and the utf-8 compatible string
+* encoder.rs
+*
+* The point of this file:
+* encode the wasm binaries using brotli and base64
+* return a Base, which means what goes into a <pre> tag inside the html
+* 
+* base64 is highly optimized for encode/decode
+* we will eventually implement base94 if there is a need
+* 
+* so what do we need to do to encode
+* we read the file from a filepath
+* 
+* we compress with brotli (or not)
+* 
+* we encode as base64
+* 
+* we return the id and the utf-8 compatible string
 */
 
 use std::fs::File;

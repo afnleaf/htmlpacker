@@ -1,4 +1,8 @@
-
+/*
+* packer.rs
+*
+* the main packing logic
+*/
 use crate::config::{AssetSource, WasmModule, CompressionType};
 use crate::cli::{YamlRoot, Cli};
 use crate::encoder::{*, Base};
@@ -100,7 +104,7 @@ async fn get_icons(
             AssetSource::Remote(_) => return Err("Remote favicons not yet supported".into()),
         };
         // then we get the buffer and encode
-        let encoded_icon = crate::encoder::encode_base64(&path_str, "")?;
+        let encoded_icon = crate::encoder::encode_base64(&path_str, "favicon")?;
         icons.push(encoded_icon.text);
     }
     Ok(icons)
