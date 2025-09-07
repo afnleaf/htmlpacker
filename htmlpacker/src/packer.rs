@@ -3,9 +3,24 @@
 *
 * the main packing logic
 */
+
+/*
+This is the main of the program that packs everything together
+
+we fetch scripts from here
+might turn into some type of cli tool that you use with yaml files
+
+local/remote: css, js, text, png, etc
+pack it up
+
+compress it with brotli
+then encode it in base64
+*/
+
+
 use crate::config::{AssetSource, WasmModule, CompressionType};
 use crate::cli::{YamlRoot, Cli};
-use crate::encoder::{*, Base};
+use crate::encoder::{Base};
 use crate::encoder;
 use crate::wasmbuilder;
 use crate::html;
@@ -27,11 +42,6 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
     println!("Config: {}", cli.config.display());
     println!("Output: {}", cli.output.display());
     
-    // make sure to compile our wasm binaries and js glue first
-    // how to disable this if already done?
-    wasmbuilder::compile_wasm_modules().await?;
-
-
     //let yaml_text = fs::read_to_string("./test.yaml")?;
     let yaml_text = fs::read_to_string(cli.config)?;
     let yaml_root: YamlRoot = serde_yaml::from_str(&yaml_text)?;
@@ -41,6 +51,12 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
     let config = crate::cli::set_config_from_yaml(yaml_root.pack).await?;
     println!("loaded config from yaml");
     
+    // make sure to compile our wasm binaries and js glue first
+    // how to disable this if already done?
+    if let Some(ref modules) = config.wasm {
+        wasmbuilder::compile_wasm_modules(modules).await?;
+    }
+
     // favicon multiple but one supported rn
     // SLOP
     let icon_sources = match config.favicon {
@@ -145,8 +161,8 @@ async fn get_sources(
 
 fn get_wasm(
     wasm_modules: Vec<WasmModule> 
-) -> Result<Vec<encoder::Base>, Box<dyn Error>> {
-    let mut bin: Vec<encoder::Base> = vec![];
+) -> Result<Vec<Base>, Box<dyn Error>> {
+    let mut bin: Vec<Base> = vec![];
     for module in wasm_modules {
         // we get the path of the file
         // must be local (for now)

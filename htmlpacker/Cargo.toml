@@ -1,7 +1,15 @@
 [package]
 name = "htmlpacker"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
+
+[lib]
+name = "htmlpacker"
+path = "src/lib.rs"
+
+[[bin]]
+name = "htmlpacker"
+path = "src/bin/main.rs"
 
 [dependencies]
 base64 = "0.22.1"

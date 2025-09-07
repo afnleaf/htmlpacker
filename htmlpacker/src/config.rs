@@ -60,6 +60,7 @@ pub struct MetaConfig {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct WasmModule {
+    pub compile_wasm: bool,
     pub id: String,
     pub source: AssetSource,
     pub compression: CompressionType,

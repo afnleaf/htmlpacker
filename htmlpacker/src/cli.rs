@@ -48,10 +48,16 @@ pub struct YamlAssets {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YamlWasmModule {
+    #[serde(default = "default_compile")]
+    pub compile_wasm: bool,
     pub path: String,
     pub id: String,
     #[serde(default = "default_compression")]
     pub compression: String,
+}
+
+fn default_compile() -> bool {
+    false
 }
 
 fn default_compression() -> String {
@@ -94,6 +100,7 @@ pub async fn set_config_from_yaml(
     config.wasm = pack.wasm.map(|wasm_map| {
         wasm_map.into_iter()
             .map(|(_key, module)| WasmModule {
+                compile_wasm: module.compile_wasm,
                 id: module.id,
                 source: AssetSource::Local(PathBuf::from(module.path)),
                 //compression: CompressionType::Brotli, 

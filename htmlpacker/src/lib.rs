@@ -17,16 +17,19 @@ compress it with brotli
 then encode it in base64
 */
 
-
-
-// modules
-mod config;
+// private modules
 mod cli;
-mod encoder;
-mod fetcher;
-pub mod packer;
 mod html;
 mod wasmbuilder;
+
+// public modules
+pub mod config;
+pub mod encoder;
+pub mod fetcher;
+pub mod packer;
+
+
+
 //use ::htmlpacker::encoder;
 //use ::htmlpacker::htmlpacker;
 //use ::htmlpacker::wasmbuilder;
