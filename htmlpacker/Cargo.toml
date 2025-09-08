@@ -6,7 +6,7 @@ description = "A tool to pack web assets into a single, atomic HTML file."
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/afnleaf/htmlpacker"
-keywords = ["html", "web", "assets", "packer", "binary", "wasm", "webassembly"]
+keywords = ["html", "packer", "binary", "wasm", "webassembly"]
 categories = ["command-line-utilities", "web-programming"]
 exclude = ["*.yaml"]
 
