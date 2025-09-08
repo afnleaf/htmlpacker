@@ -192,7 +192,7 @@ pub fn setup_instance_geometries(
             let lat_scale = lat_rad.cos().abs() as f32;  
             
             // Base scale for 1-degree grid cells
-            let base_scale = 0.15;   // Overall size at equator
+            let base_scale = 0.16;   // Overall size at equator
             let min_lon_scale = 0.75; // Minimum longitude scale at poles (20% of equator)
             
             // Non-uniform scaling: 

@@ -4,16 +4,11 @@
 * tiny bin entry point
 */
 
+use std::error::Error;
 use htmlpacker::*;
 
 #[tokio::main]
-async fn main() {
-
-    if let Err(e) = htmlpacker::packer::pack().await {
-        eprintln!("\nError: Failed to pack assets: {}", e);
-
-        std::process::exit(1);
-    }
-    //let _ = pack().await;
+async fn main() -> Result<(), Box<dyn Error>> {
+    packer::run().await
 }
 

@@ -18,7 +18,12 @@ then encode it in base64
 */
 
 
-use crate::config::{AssetSource, WasmModule, CompressionType};
+use crate::config::{
+    AssetSource, 
+    WasmModule, 
+    CompressionType, 
+    PackerConfig,
+};
 use crate::cli::{YamlRoot, Cli};
 use crate::encoder::{Base};
 use crate::encoder;
@@ -29,40 +34,105 @@ use crate::fetcher;
 //
 use std::error::Error;
 use std::fs;
+use std::path::PathBuf;
 
 use clap::{Parser};
+
+// runtime assets on default
+pub const RUNTIME_ICON: &str = "core/icon.svg";
+pub const RUNTIME_CORE_JS: &str = "core/core.js";
+pub const RUNTIME_DECODER_JS: &str = "core/wasm_decoder.js";
+pub const RUNTIME_DECODER_WASM: &str = "core/wasm_decoder_bg.wasm";
 
 // read yaml from file
 // set config from yaml
 // need serde structs
 
-pub async fn pack() -> Result<(), Box<dyn Error>> {
+// the basic run for API
+pub async fn run() -> Result<(), Box<dyn Error>> {
     // parse CLI
     let cli = Cli::parse();
     println!("Config: {}", cli.config.display());
     println!("Output: {}", cli.output.display());
     
-    //let yaml_text = fs::read_to_string("./test.yaml")?;
-    let yaml_text = fs::read_to_string(cli.config)?;
+    let config = load_config(cli.config).await?;
+    pack(config, cli.output).await?;
+    Ok(())
+}
+
+// loads config from given path, serde yaml->config magic
+pub async fn load_config(
+    config_path: PathBuf,
+) -> Result<PackerConfig, Box<dyn Error>> {
+    let yaml_text = fs::read_to_string(config_path)?;
     let yaml_root: YamlRoot = serde_yaml::from_str(&yaml_text)?;
-    println!("extracted yaml");
+    println!("Extracted yaml");
     //println!("{:?}", yaml_text);
     //println!("{:#?}", &yaml_root.pack);
     let config = crate::cli::set_config_from_yaml(yaml_root.pack).await?;
-    println!("loaded config from yaml");
+    println!("Loaded config from yaml");
+    Ok(config)
+}
+
+// wonky because it changes the config directly
+fn default_runtime(
+    config: &mut PackerConfig,
+) {
+    println!("Default runtime is enabled. Adding icon, core.js and wasm_decoder");
+    let core_icon = vec![
+        AssetSource::Local(PathBuf::from(RUNTIME_ICON)),
+    ];
     
+    for source in core_icon {
+        config.favicon.get_or_insert_with(Vec::new).push(source);
+    }
+
+    let core_js = vec![
+        AssetSource::Local(PathBuf::from(RUNTIME_DECODER_JS)),
+        AssetSource::Local(PathBuf::from(RUNTIME_CORE_JS)),
+    ];
+
+    for source in core_js {
+        config.scripts.get_or_insert_with(Vec::new).push(source);
+    }
+
+    let core_wasm = vec![
+        WasmModule {
+            compile_wasm: false,
+            source: AssetSource::Local(PathBuf::from(RUNTIME_DECODER_WASM)),
+            id: "bin-wasm-decoder".into(),
+            compression: CompressionType::None,
+        },
+    ];
+
+    for source in core_wasm {
+        config.wasm.get_or_insert_with(Vec::new).push(source);
+    }
+}
+
+// have to separate pack from parse cli
+// pack takes in a config and an output filename
+pub async fn pack(
+    mut config: PackerConfig,
+    output: PathBuf,
+) -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
     // how to disable this if already done?
     if let Some(ref modules) = config.wasm {
         wasmbuilder::compile_wasm_modules(modules).await?;
     }
 
-    // favicon multiple but one supported rn
-    // SLOP
+    // set default runtime for the given configuration
+    if config.runtime.enabled {
+        default_runtime(&mut config);
+    }
+
+    // favicon multiple allowed but forcing only one supported rn
     let icon_sources = match config.favicon {
         Some(source) => get_icons(source).await?,
         None => vec![],
     };
+    // this is sort of good but also SLOP
     let mut icons = vec![];
     if !icon_sources.is_empty() {
         icons.push(icon_sources[0].clone());
@@ -74,17 +144,22 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
         Some(source) => get_styles_text(source).await?,
         None => "".to_string(),
     };
-
+    
     // scripts as a vec
-    //let scripts = get_sources(config.scripts).await?;
-    let mut scripts = match config.scripts {
+    let scripts = match config.scripts {
         Some(source) => get_sources(source).await?,
         None => vec![],
     };
+
+    // this is super brittle
+    // we don't do it
+    // just add wasm_decoder pkg to core
+    /*
     if !scripts.is_empty() {
         // rename wasm_bindgen so that we don't have double definition conflicts
         scripts[0] = scripts[0].replace("wasm_bindgen", "wasm_decoder");
     }
+    */
 
     // binary wasm files
     //let bin = get_wasm(config.wasm)?;
@@ -100,10 +175,9 @@ pub async fn pack() -> Result<(), Box<dyn Error>> {
         bin,
     );
 
-
     let html = markup.into_string();
     //println!("html: {}", html);
-    html::save_html(html, cli.output)?;
+    html::save_html(html, output)?;
 
     Ok(())
 }

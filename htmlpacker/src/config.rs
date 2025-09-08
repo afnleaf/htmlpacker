@@ -39,15 +39,28 @@ impl Default for CompressionType {
     }
 }
 
+impl Default for RuntimeConfig {
+    fn default() -> Self {
+        RuntimeConfig { enabled: true }
+    }
+}
+
 // these are the configuration options for the packer
 // this defines the source files that will be packed
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct PackerConfig {
+    #[serde(default)]
+    pub runtime: RuntimeConfig,
     pub meta: Option<MetaConfig>,
     pub favicon: Option<Vec<AssetSource>>,
     pub styles: Option<Vec<AssetSource>>,
     pub scripts: Option<Vec<AssetSource>>,
     pub wasm: Option<Vec<WasmModule>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RuntimeConfig {
+    pub enabled: bool,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]

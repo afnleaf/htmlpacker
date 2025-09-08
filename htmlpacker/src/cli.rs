@@ -24,11 +24,18 @@ pub struct YamlRoot {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YamlPack {
+    pub runtime: Option<YamlRuntime>,
     pub meta: Option<YamlMeta>,
     pub favicon: Option<YamlAssets>,
     pub css: Option<YamlAssets>,
     pub scripts: Option<YamlAssets>,
     pub wasm: Option<HashMap<String, YamlWasmModule>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct YamlRuntime {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,10 +57,14 @@ pub struct YamlAssets {
 pub struct YamlWasmModule {
     #[serde(default = "default_compile")]
     pub compile_wasm: bool,
-    pub path: String,
     pub id: String,
+    pub path: String,
     #[serde(default = "default_compression")]
     pub compression: String,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_compile() -> bool {
@@ -84,6 +95,10 @@ pub async fn set_config_from_yaml(
 ) -> Result<PackerConfig, Box<dyn Error>> {
     let mut config = PackerConfig::default();
 
+    if let Some(runtime) = pack.runtime {
+        config.runtime.enabled = runtime.enabled;
+    }
+
     config.meta = pack.meta.map(|m| MetaConfig {
         title: m.title,
         author: m.author,
@@ -92,7 +107,7 @@ pub async fn set_config_from_yaml(
     });
 
     // simple assets conversion
-    config.favicon = convert_yaml_assets(pack.favicon)?;
+    config.favicon = convert_yaml_assets(pack.favicon)?;   
     config.styles = convert_yaml_assets(pack.css)?;
     config.scripts = convert_yaml_assets(pack.scripts)?;
 
