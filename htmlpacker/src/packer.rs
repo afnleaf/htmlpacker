@@ -37,12 +37,14 @@ use std::fs;
 use std::path::PathBuf;
 
 use clap::{Parser};
+use base64::prelude::*;
+use sha2::{Sha256, Digest};
 
 // runtime assets on default
-pub const RUNTIME_ICON: &str = "core/icon.svg";
-pub const RUNTIME_CORE_JS: &str = "core/core.js";
-pub const RUNTIME_DECODER_JS: &str = "core/wasm_decoder.js";
-pub const RUNTIME_DECODER_WASM: &str = "core/wasm_decoder_bg.wasm";
+const RUNTIME_ICON: &str = include_str!("../core/icon.svg");
+const RUNTIME_CORE_JS: &str = include_str!("../core/core.js");
+const RUNTIME_DECODER_JS: &str = include_str!("../core/wasm_decoder.js");
+const RUNTIME_DECODER_WASM: &[u8] = include_bytes!("../core/wasm_decoder_bg.wasm");
 
 // read yaml from file
 // set config from yaml
@@ -74,46 +76,42 @@ pub async fn load_config(
     Ok(config)
 }
 
-// wonky because it changes the config directly
+// extremely wonky
 fn default_runtime(
-    config: &mut PackerConfig,
+//    config: &mut PackerConfig,
+    icons: &mut Vec<String>,
+    scripts: &mut Vec<String>,
+    bin: &mut Vec<Base>,
 ) {
-    println!("Default runtime is enabled. Adding icon, core.js and wasm_decoder");
-    let core_icon = vec![
-        AssetSource::Local(PathBuf::from(RUNTIME_ICON)),
-    ];
-    
-    for source in core_icon {
-        config.favicon.get_or_insert_with(Vec::new).push(source);
-    }
+    println!("Default runtime is enabled. \
+        Adding icon, core.js and wasm_decoder");
 
-    let core_js = vec![
-        AssetSource::Local(PathBuf::from(RUNTIME_DECODER_JS)),
-        AssetSource::Local(PathBuf::from(RUNTIME_CORE_JS)),
-    ];
+    // favicon
+    let encoded_icon_string = 
+        BASE64_STANDARD.encode(RUNTIME_ICON.as_bytes());
+    icons.insert(0, encoded_icon_string);
 
-    for source in core_js {
-        config.scripts.get_or_insert_with(Vec::new).push(source);
-    }
+    // default scripts
+    scripts.push(RUNTIME_DECODER_JS.to_string());
+    scripts.push(RUNTIME_CORE_JS.to_string());
 
-    let core_wasm = vec![
-        WasmModule {
-            compile_wasm: false,
-            source: AssetSource::Local(PathBuf::from(RUNTIME_DECODER_WASM)),
-            id: "bin-wasm-decoder".into(),
-            compression: CompressionType::None,
-        },
-    ];
+    // decoder wasm binary
+    let wasm_hash = Sha256::digest(RUNTIME_DECODER_WASM);
+    let wasm_hash_string = format!("{:x}", wasm_hash);
+    let wasm_encoded_text = BASE64_STANDARD.encode(RUNTIME_DECODER_WASM);
+    let decoder_module = Base {
+        id: "bin-wasm-decoder".to_string(),
+        hash: wasm_hash_string,
+        text: wasm_encoded_text,
+    };
 
-    for source in core_wasm {
-        config.wasm.get_or_insert_with(Vec::new).push(source);
-    }
+    bin.push(decoder_module);
 }
 
 // have to separate pack from parse cli
 // pack takes in a config and an output filename
 pub async fn pack(
-    mut config: PackerConfig,
+    config: PackerConfig,
     output: PathBuf,
 ) -> Result<(), Box<dyn Error>> {
     // make sure to compile our wasm binaries and js glue first
@@ -122,11 +120,7 @@ pub async fn pack(
         wasmbuilder::compile_wasm_modules(modules).await?;
     }
 
-    // set default runtime for the given configuration
-    if config.runtime.enabled {
-        default_runtime(&mut config);
-    }
-
+    
     // favicon multiple allowed but forcing only one supported rn
     let icon_sources = match config.favicon {
         Some(source) => get_icons(source).await?,
@@ -146,7 +140,7 @@ pub async fn pack(
     };
     
     // scripts as a vec
-    let scripts = match config.scripts {
+    let mut scripts = match config.scripts {
         Some(source) => get_sources(source).await?,
         None => vec![],
     };
@@ -163,10 +157,20 @@ pub async fn pack(
 
     // binary wasm files
     //let bin = get_wasm(config.wasm)?;
-    let bin = match config.wasm {
+    let mut bin = match config.wasm {
         Some(source) => get_wasm(source)?,
         None => vec![],
     };
+
+    // set default runtime for the given configuration
+    if config.runtime.enabled {
+        default_runtime(
+            &mut icons,
+            &mut scripts,
+            &mut bin,
+        );
+    }
+
 
     let markup = html::page(
         styles_text,
@@ -254,3 +258,37 @@ fn get_wasm(
     Ok(bin)
 }
 
+
+
+
+    /*
+    let core_icon = vec![
+        AssetSource::Local(PathBuf::from(RUNTIME_ICON)),
+    ];
+    
+    for source in core_icon {
+        config.favicon.get_or_insert_with(Vec::new).push(source);
+    }
+
+    let core_js = vec![
+        AssetSource::Local(PathBuf::from(RUNTIME_DECODER_JS)),
+        AssetSource::Local(PathBuf::from(RUNTIME_CORE_JS)),
+    ];
+
+    for source in core_js {
+        config.scripts.get_or_insert_with(Vec::new).push(source);
+    }
+
+    let core_wasm = vec![
+        WasmModule {
+            compile_wasm: false,
+            source: AssetSource::Local(PathBuf::from(RUNTIME_DECODER_WASM)),
+            id: "bin-wasm-decoder".into(),
+            compression: CompressionType::None,
+        },
+    ];
+
+    for source in core_wasm {
+        config.wasm.get_or_insert_with(Vec::new).push(source);
+    }
+    */

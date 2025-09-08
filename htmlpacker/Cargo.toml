@@ -9,6 +9,13 @@ repository = "https://github.com/afnleaf/htmlpacker"
 keywords = ["html", "packer", "binary", "wasm", "webassembly"]
 categories = ["command-line-utilities", "web-programming"]
 exclude = ["*.yaml"]
+include = [
+    "src/**/*",
+    "core/**/*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-MIT",
+]
 
 [lib]
 name = "htmlpacker"
