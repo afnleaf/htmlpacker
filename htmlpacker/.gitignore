@@ -1,3 +1,7 @@
 index.html
 *.html
-/output
+./target
+./output
+./core/loading.js
+./core/app.js
+./core/decoder.js

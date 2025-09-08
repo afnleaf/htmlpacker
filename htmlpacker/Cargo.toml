@@ -3,11 +3,12 @@ name = "htmlpacker"
 version = "0.0.1"
 edition = "2021"
 description = "A tool to pack web assets into a single, atomic HTML file."
-lisence = "None"
+license = "MIT"
 readme = "README.md"
 repository = "https://github.com/afnleaf/htmlpacker"
 keywords = ["html", "web", "assets", "packer", "binary", "wasm", "webassembly"]
 categories = ["command-line-utilities", "web-programming"]
+exclude = ["*.yaml"]
 
 [lib]
 name = "htmlpacker"
