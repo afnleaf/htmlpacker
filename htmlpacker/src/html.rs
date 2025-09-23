@@ -43,13 +43,18 @@ fn head(
     );
     html! {
         (DOCTYPE)
+        "\n"
         meta charset = "utf-8";
+        "\n"
         meta name = "viewport" content = (viewport);
         //meta name = "description" content = "htmlpacked webapp"
         //meta name = "author" content = "htmlpacker"
         title { "htmlpacker" }
+        "\n"
         (favicons(icons))
-        style { (css) }
+        "\n"
+        style { "\n"(css)"\n" }
+        "\n"
     }
 }
 
@@ -60,8 +65,10 @@ fn favicons(icons: Vec<String>) -> Markup {
         
         // modern browsers - SVG favicon (best option when available)
         //link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,(icons[0])";
+
+        "\n"
         link rel="icon" type="image/svg+xml" href=(format!("data:image/svg+xml;base64,{}", icons[0]));
-        
+        "\n"
         // fallback PNGs for various sizes
         //link rel="icon" type="image/png" sizes="16x16" href="data:image/png;base64,YOUR_16x16_PNG_BASE64_HERE";
         //link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,YOUR_32x32_PNG_BASE64_HERE";
@@ -88,11 +95,15 @@ fn scripts(
     js: Vec<String>
 ) -> Markup {
     html! {
+        "\n"
         // you can do for loops in here :o
         @for script in &js {
             script {
+                "\n"
                 (PreEscaped(script))
+                "\n"
             }
+            "\n"
         }
 
         // external scripts
@@ -114,10 +125,14 @@ fn binary(
     bin: Vec<Base>,
 ) -> Markup {
     html! {
+        "\n"
         @for b in &bin {
             pre id=(b.id) hash=(b.hash) style="display: none;" {
+                "\n"
                 (b.text)
+                "\n"
             }
+            "\n"
         }
     }
 }
@@ -137,18 +152,23 @@ pub fn page(
 -> Markup {
     html! {
         (head(css, icons))
-        body { 
+        "\n"
+        body {
+            "\n"
             (binary(
                 bin,
             ))
+            "\n"
             (scripts(
                 js
             ))
+            "\n"
             //(scripts(
             //    external_scripts_text,
             //    local_scripts_text,
             //))
         }
+        "\n"
     }
 }
 

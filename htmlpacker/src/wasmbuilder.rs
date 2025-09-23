@@ -103,7 +103,7 @@ async fn build_wasm(
         Command::new("wasm-pack")
             //.current_dir(&dir_owned)
             .current_dir(&dir)
-            .args(&[
+            .args([
                 "build",
                 "--target",
                 "no-modules",

@@ -26,18 +26,19 @@ impl Default for AssetSource {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 //#[serde(rename_all = "lowercase")]
 pub enum CompressionType {
     Brotli,
+    #[default]
     None,
 }
 
-impl Default for CompressionType {
-    fn default() -> Self {
-        CompressionType::None
-    }
-}
+//impl Default for CompressionType {
+//    fn default() -> Self {
+//        CompressionType::None
+//    }
+//}
 
 impl Default for RuntimeConfig {
     fn default() -> Self {

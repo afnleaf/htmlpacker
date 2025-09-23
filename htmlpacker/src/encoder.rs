@@ -35,9 +35,9 @@ pub struct Base {
 impl Base {
     pub fn new(id: String, hash: String, text: String) -> Self {
         Base {
-            id: id,
-            hash: hash,
-            text: text,
+            id,
+            hash,
+            text,
         }
     }
 }
@@ -71,7 +71,8 @@ pub fn encode_base64(
 // lets compress with brotli
 // create a buffer for compressed data
 pub fn encode_brotli(
-    buffer: &Vec<u8>
+    //buffer: &Vec<u8>
+    buffer: &[u8]
 ) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut compressed_buffer = Vec::new();
     println!("brotli compression"); 
