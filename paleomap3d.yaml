@@ -1,0 +1,21 @@
+# config for paleomap3d wasm build
+pack:
+  runtime:
+    enabled: true
+  meta:
+    title: "htmlpacker"
+    author: "me"
+    description: "packed by htmlpacker"
+    keywords: "hello from yaml"
+  scripts:
+    local:
+      - "wasm_modules/pkg/wasm_modules.js"
+  wasm:
+    moDule:
+      compile_wasm: false
+      path: "wasm_modules/pkg/wasm_modules_bg.wasm"
+      # currently this module needs to be called bin-wasm-app
+      # for the core.js to load it properly
+      id: "bin-wasm-app"
+      compression: "brotli"
+
