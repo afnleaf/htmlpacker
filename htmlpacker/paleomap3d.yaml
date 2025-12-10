@@ -2,6 +2,9 @@
 pack:
   runtime:
     enabled: true
+    icon: false
+    core: true
+    decoder: true
   meta:
     title: "htmlpacker"
     author: "me"
@@ -10,8 +13,11 @@ pack:
   scripts:
     local:
       - "../wasm_modules/pkg/wasm_modules.js"
+  html:
+    local:
+      - "../test.html"
   wasm:
-    moDule:
+    module:
       compile_wasm: false
       path: "../wasm_modules/pkg/wasm_modules_bg.wasm"
       # currently this module needs to be called bin-wasm-app

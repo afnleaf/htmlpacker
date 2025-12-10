@@ -42,7 +42,12 @@ pub enum CompressionType {
 
 impl Default for RuntimeConfig {
     fn default() -> Self {
-        RuntimeConfig { enabled: true }
+        RuntimeConfig { 
+            enabled: true,
+            icon: true,
+            core: true,
+            decoder: true,
+        }
     }
 }
 
@@ -56,12 +61,16 @@ pub struct PackerConfig {
     pub favicon: Option<Vec<AssetSource>>,
     pub styles: Option<Vec<AssetSource>>,
     pub scripts: Option<Vec<AssetSource>>,
+    pub html: Option<Vec<AssetSource>>,
     pub wasm: Option<Vec<WasmModule>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RuntimeConfig {
     pub enabled: bool,
+    pub icon: bool,
+    pub core: bool,
+    pub decoder: bool,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]

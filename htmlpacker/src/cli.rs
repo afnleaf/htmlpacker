@@ -28,14 +28,22 @@ pub struct YamlPack {
     pub meta: Option<YamlMeta>,
     pub favicon: Option<YamlAssets>,
     pub css: Option<YamlAssets>,
+    pub html: Option<YamlAssets>,
     pub scripts: Option<YamlAssets>,
     pub wasm: Option<HashMap<String, YamlWasmModule>>,
 }
 
+// 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YamlRuntime {
     #[serde(default = "default_true")]
     pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub icon: bool,
+    #[serde(default = "default_true")]
+    pub core: bool,
+    #[serde(default = "default_true")]
+    pub decoder: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,7 +59,6 @@ pub struct YamlAssets {
     pub local: Option<Vec<String>>,
     pub remote: Option<Vec<String>>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YamlWasmModule {
@@ -95,8 +102,23 @@ pub async fn set_config_from_yaml(
 ) -> Result<PackerConfig, Box<dyn Error>> {
     let mut config = PackerConfig::default();
 
+    // runtime.enabled is like a master switch
     if let Some(runtime) = pack.runtime {
-        config.runtime.enabled = runtime.enabled;
+        config.runtime =  if runtime.enabled {
+            RuntimeConfig {
+                enabled: true,
+                icon: runtime.icon,
+                core: runtime.core,
+                decoder: runtime.decoder,
+            }
+        } else {
+            RuntimeConfig {
+                enabled: false,
+                icon: false,
+                core: false,
+                decoder: false,
+            }
+        }
     }
 
     config.meta = pack.meta.map(|m| MetaConfig {
@@ -109,6 +131,7 @@ pub async fn set_config_from_yaml(
     // simple assets conversion
     config.favicon = convert_yaml_assets(pack.favicon)?;   
     config.styles = convert_yaml_assets(pack.css)?;
+    config.html = convert_yaml_assets(pack.html)?;
     config.scripts = convert_yaml_assets(pack.scripts)?;
 
     // wasm modules from hashmap to vec

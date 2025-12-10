@@ -7,7 +7,7 @@ where we start our bevy app and browser interop
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
-#![feature(trivial_bounds)]
+//#![feature(trivial_bounds)]
 
 use wasm_bindgen::prelude::*;
 use bevy::{

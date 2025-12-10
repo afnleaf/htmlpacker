@@ -19,6 +19,9 @@ put the wasm in the base64 lil bro
 ## features
 - [x] text
 - [x] png
+- [x] custom html
+- [x] css
+- [x] favicon svg
 - [x] wasm simple
 - [x] wasm-bindgen
 - [x] wasm canvas
@@ -49,6 +52,7 @@ With these current implemented features, we have a solid backbone for the htmlpa
 - [x] fps counter
 - [x] encode textures
 - [x] encode models/meshes/3d
+- [x] fix default runtime / make it more intuitive to use
 - [ ] simple asset loader for textures
 - asset loader for models
 - basis universal 
@@ -57,6 +61,36 @@ With these current implemented features, we have a solid backbone for the htmlpa
 - new animation
 - basic game
 - single wasm-binary self loading
+
+# Implementation Plan
+*this maybe doesn't need to be here?*
+
+## Prio 1
+**refactor entire code into group n+2 mode**
+
+## Prio 2
+*Optimization*
+
+**Implement High-Performance Encoding & Decoding in Base122**
+
+**Build a Complete Demo ("Basic Game")**
+
+**Implement Advanced Asset Loading**
+-   **Goal:** Natively support fonts and enable efficient, compressed textures as outlined in the `todo` list.
+-   **Code Required:**
+    -   **For Fonts (in `htmlpacker/src/htmlpacker.rs`):**
+        -   When a `.ttf` or `.otf` file is specified in the YAML, read the file, Base64-encode it, and dynamically generate a CSS `@font-face` rule inside the main `<style>` tag. This is a standard and effective technique.
+    -   **For Basis Universal Textures (in `wasm_modules/src/lib.rs`):**
+        -   This is primarily a task for the Bevy application. You will need to add a Rust crate for Basis Universal decoding to `wasm_modules/Cargo.toml`.
+        -   Modify your asset loading and material creation systems within Bevy to recognize `.basis` files, decompress them, and create `Image` assets suitable for the GPU.
+
+## Prio 3
+
+**engine specific optimization**
+
+**bevy lazy loading, main engine vs assets**
+
+**Cache Assets when loaded? IndexDB for everything embedded?**
 
 ## compile
 wasm: `wasm-pack build --target no-modules`

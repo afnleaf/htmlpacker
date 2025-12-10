@@ -59,22 +59,28 @@ fn head(
 }
 
 fn favicons(icons: Vec<String>) -> Markup {
-    html! {
-        // basic - covers most needs
-        //link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,YOUR_ICO_BASE64_HERE";
-        
-        // modern browsers - SVG favicon (best option when available)
-        //link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,(icons[0])";
+    if icons.len() > 0 {
+        html! {
+            // basic - covers most needs
+            //link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,YOUR_ICO_BASE64_HERE";
+            
+            // modern browsers - SVG favicon (best option when available)
+            //link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,(icons[0])";
 
-        "\n"
-        link rel="icon" type="image/svg+xml" href=(format!("data:image/svg+xml;base64,{}", icons[0]));
-        "\n"
-        // fallback PNGs for various sizes
-        //link rel="icon" type="image/png" sizes="16x16" href="data:image/png;base64,YOUR_16x16_PNG_BASE64_HERE";
-        //link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,YOUR_32x32_PNG_BASE64_HERE";
-        
-        // iOS/macOS support
-        //link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,YOUR_180x180_PNG_BASE64_HERE";
+            "\n"
+            link rel="icon" type="image/svg+xml" href=(format!("data:image/svg+xml;base64,{}", icons[0]));
+            "\n"
+            // fallback PNGs for various sizes
+            //link rel="icon" type="image/png" sizes="16x16" href="data:image/png;base64,YOUR_16x16_PNG_BASE64_HERE";
+            //link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,YOUR_32x32_PNG_BASE64_HERE";
+            
+            // iOS/macOS support
+            //link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,YOUR_180x180_PNG_BASE64_HERE";
+        }
+    } else {
+        html! {
+            "\n"
+        }
     }
 }
 
@@ -87,6 +93,19 @@ fn favicons(icons: Vec<String>) -> Markup {
 // </script> appearing in strings
 // unexpected semicolons from minification
 // PreEscaped does this for us.
+
+// place a bunch of html text
+fn place_html_texts(
+    text: Vec<String>,
+) -> Markup {
+    html! {
+        @for t in &text {
+            "\n"
+            (PreEscaped(t))
+            "\n"
+        }
+    }
+}
 
 // place a bunch of scripts
 fn scripts(
@@ -144,6 +163,7 @@ fn binary(
 pub fn page(
     css: String,
     icons: Vec<String>,
+    html_texts: Vec<String>,
     js: Vec<String>,
     //external_scripts_text: Vec<String>,
     //local_scripts_text: Vec<String>,
@@ -161,6 +181,10 @@ pub fn page(
             "\n"
             (scripts(
                 js
+            ))
+            "\n"
+            (place_html_texts(
+                html_texts
             ))
             "\n"
             //(scripts(

@@ -23,6 +23,7 @@ use crate::config::{
     WasmModule, 
     CompressionType, 
     PackerConfig,
+    RuntimeConfig,
 };
 use crate::cli::{YamlRoot, Cli};
 use crate::encoder::{Base};
@@ -78,36 +79,47 @@ pub async fn load_config(
 
 // extremely wonky
 fn default_runtime(
-//    config: &mut PackerConfig,
+    runtime: &RuntimeConfig,
     icons: &mut Vec<String>,
     scripts: &mut Vec<String>,
     bin: &mut Vec<Base>,
 ) {
-    println!("Default runtime is enabled. \
-        Adding icon, core.js and wasm_decoder");
+    println!("Default runtime is enabled.");
 
     // favicon
-    let encoded_icon_string = 
-        BASE64_STANDARD.encode(RUNTIME_ICON.as_bytes());
-    icons.insert(0, encoded_icon_string);
+    if runtime.icon {
+        println!("Adding icon.");
+        let encoded_icon_string = 
+            BASE64_STANDARD.encode(RUNTIME_ICON.as_bytes());
+        icons.insert(0, encoded_icon_string);
 
-    // default scripts
-    scripts.push(RUNTIME_DECODER_JS.to_string());
-    scripts.push(RUNTIME_CORE_JS.to_string());
+    }
 
-    // decoder wasm binary
-    let wasm_hash = Sha256::digest(RUNTIME_DECODER_WASM);
-    let wasm_hash_string = format!("{:x}", wasm_hash);
-    let wasm_encoded_text = BASE64_STANDARD.encode(RUNTIME_DECODER_WASM);
-    let decoder_module = Base {
-        id: "bin-wasm-decoder".to_string(),
-        hash: wasm_hash_string,
-        text: wasm_encoded_text,
-    };
-
-    bin.push(decoder_module);
+    // core script
+    if runtime.core {
+        println!("Adding core.js");
+        scripts.push(RUNTIME_CORE_JS.to_string());
+    }
+    
+    // decoder js and wasm
+    if runtime.decoder {
+        println!("Adding decoder.");
+        scripts.push(RUNTIME_DECODER_JS.to_string());
+        // decoder wasm binary
+        let wasm_hash = Sha256::digest(RUNTIME_DECODER_WASM);
+        let wasm_hash_string = format!("{:x}", wasm_hash);
+        let wasm_encoded_text = BASE64_STANDARD.encode(RUNTIME_DECODER_WASM);
+        let decoder_module = Base {
+            id: "bin-wasm-decoder".to_string(),
+            hash: wasm_hash_string,
+            text: wasm_encoded_text,
+        };
+        bin.push(decoder_module);
+    }
 }
 
+// pack --------------------------------------------------------------------- /
+// this is the holy grail function 
 // have to separate pack from parse cli
 // pack takes in a config and an output filename
 pub async fn pack(
@@ -119,13 +131,13 @@ pub async fn pack(
     if let Some(ref modules) = config.wasm {
         wasmbuilder::compile_wasm_modules(modules).await?;
     }
-
     
     // favicon multiple allowed but forcing only one supported rn
     let icon_sources = match config.favicon {
         Some(source) => get_icons(source).await?,
         None => vec![],
     };
+
     // this is sort of good but also SLOP
     let mut icons = vec![];
     if !icon_sources.is_empty() {
@@ -144,6 +156,13 @@ pub async fn pack(
         Some(source) => get_sources(source).await?,
         None => vec![],
     };
+
+    //let html_text = "<p>test</p>".to_string();
+    let html_texts = match config.html {
+        Some(source) => get_sources(source).await?,
+        None => vec![],
+    };
+    println!("{:?}", html_texts);
 
     // this is super brittle
     // we don't do it
@@ -165,6 +184,7 @@ pub async fn pack(
     // set default runtime for the given configuration
     if config.runtime.enabled {
         default_runtime(
+            &config.runtime,
             &mut icons,
             &mut scripts,
             &mut bin,
@@ -175,6 +195,7 @@ pub async fn pack(
     let markup = html::page(
         styles_text,
         icons,
+        html_texts,
         scripts,
         bin,
     );
